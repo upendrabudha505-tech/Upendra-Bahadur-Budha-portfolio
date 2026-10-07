@@ -18,6 +18,7 @@ import {
   normalizeCvData,
   triggerCvDownload,
 } from '../utils/cvGenerator';
+import { optimizeImageFile } from '../utils/imageOptimizer';
 import { A4CvSheet } from './A4CvSheet';
 
 interface CvEditorModalProps {
@@ -60,17 +61,16 @@ export const CvEditorModal: React.FC<CvEditorModalProps> = ({
     onSaveCv(def);
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setDraft((prev) => ({ ...prev, profilePhotoDataUrl: reader.result as string }));
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await optimizeImageFile(file, 900, 1200, 0.9);
+      setDraft((prev) => ({ ...prev, profilePhotoDataUrl: dataUrl }));
+    } catch {
+      // Ignore error
+    }
     e.target.value = '';
   };
 

@@ -101,7 +101,7 @@ export function getDefaultCvData(): EditableCvData {
     roleTitle: 'BSc IT – Cloud Computing Student',
     college: 'LBEF College',
     currentStatus: 'Undergraduate / College Student',
-    location: PERSONAL_INFO.location || 'Nepal',
+    location: 'Kathmandu, Nepal',
     phone: '9701269514',
     email: PERSONAL_INFO.email || 'upendrabudha505@gmail.com',
     linkedinDisplay: 'www.linkedin.com/in/upendra-budha-6b9240329',
@@ -111,7 +111,7 @@ export function getDefaultCvData(): EditableCvData {
     profilePhotoDataUrl: DEFAULT_PROFILE_IMAGE,
     photoShape: 'rounded-square',
     careerObjective:
-      'Motivated Bachelor of Science in Information Technology (BSc IT) student at LBEF College seeking an internship, trainee, part-time, or entry-level opportunity in IT, Cisco Networking, Cloud Computing, Cybersecurity, and Web Development. Eager to apply academic knowledge, practical technical skills, and collaborative problem-solving to contribute effectively while growing in a professional IT environment.',
+      'To become a successful entrepreneur by combining my knowledge of Information Technology with creativity, innovation, and problem-solving skills. As a BSc IT student specializing in Cloud Computing, I aim to gain practical experience, develop strong technical and business skills, and create innovative technology-driven solutions that can solve real-world problems and generate meaningful opportunities.',
     summary:
       'Enthusiastic and dedicated BSc IT undergraduate student at LBEF College specializing in Cloud Computing, with strong academic and practical interests in Cisco Networking, Cybersecurity, Web Development, Video Editing, and Content Creation. Known for a proactive willingness to learn, analytical problem-solving, effective teamwork, and clear communication across technical coursework and digital projects.',
     education: [
@@ -135,6 +135,7 @@ export function getDefaultCvData(): EditableCvData {
       'Problem Solving',
       'Teamwork',
       'Communication',
+      'basic linux',
     ],
     skills: [
       {
@@ -216,20 +217,32 @@ export function getDefaultCvData(): EditableCvData {
     credentialsNote:
       'Completed IT-related certifications and verified digital credentials are listed below as they are earned. Verify digital badges via Credly.',
     completedCertifications: [],
-    additionalSections: [],
+    additionalSections: [
+      {
+        id: 'custom-sec-1791398025884',
+        heading: 'Languages / Additional Information',
+        content: 'English — Professional Working Proficiency\nNepali — Native Proficiency',
+      },
+    ],
   };
 }
 
 export function normalizeCvData(raw?: Partial<EditableCvData> | null): EditableCvData {
   const def = getDefaultCvData();
   if (!raw) return def;
+  const rawPhoto = raw.profilePhotoDataUrl?.trim() || '';
+  const resolvedPhoto =
+    !rawPhoto ||
+    rawPhoto === './assets/profile.jpg' ||
+    rawPhoto === '/assets/profile.jpg' ||
+    rawPhoto === './public/assets/profile.jpg'
+      ? def.profilePhotoDataUrl
+      : rawPhoto;
+
   return {
     ...def,
     ...raw,
-    profilePhotoDataUrl:
-      raw.profilePhotoDataUrl && raw.profilePhotoDataUrl.trim() !== ''
-        ? raw.profilePhotoDataUrl
-        : def.profilePhotoDataUrl,
+    profilePhotoDataUrl: resolvedPhoto,
     education: Array.isArray(raw.education) && raw.education.length > 0 ? raw.education : def.education,
     technicalSkillsList:
       Array.isArray(raw.technicalSkillsList) && raw.technicalSkillsList.length > 0
@@ -244,7 +257,10 @@ export function normalizeCvData(raw?: Partial<EditableCvData> | null): EditableC
     completedCertifications: Array.isArray(raw.completedCertifications)
       ? raw.completedCertifications
       : [],
-    additionalSections: Array.isArray(raw.additionalSections) ? raw.additionalSections : [],
+    additionalSections:
+      Array.isArray(raw.additionalSections) && raw.additionalSections.length > 0
+        ? raw.additionalSections
+        : def.additionalSections,
   };
 }
 

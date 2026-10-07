@@ -18,8 +18,8 @@
         "Information Architecture",
         "Academic Coursework"
       ],
-      "imageUrl": "./assets/projects/nepal-invest.svg",
-      "suggestedAssetPath": "assets/projects/nepal-invest.svg"
+      "imageUrl": "./assets/projects/nepal-invest.jpg",
+      "suggestedAssetPath": "assets/projects/nepal-invest.jpg"
     },
     {
       "id": "clothing-marketplace",
@@ -39,8 +39,8 @@
         "Responsive Grid",
         "Web Design"
       ],
-      "imageUrl": "./assets/projects/clothing-marketplace.svg",
-      "suggestedAssetPath": "assets/projects/clothing-marketplace.svg"
+      "imageUrl": "./assets/projects/clothing-marketplace.jpg",
+      "suggestedAssetPath": "assets/projects/clothing-marketplace.jpg"
     },
     {
       "id": "smart-home",
@@ -60,8 +60,8 @@
         "Design Thinking",
         "Networked Devices"
       ],
-      "imageUrl": "./assets/projects/smart-home.svg",
-      "suggestedAssetPath": "assets/projects/smart-home.svg"
+      "imageUrl": "./assets/projects/smart-home.jpg",
+      "suggestedAssetPath": "assets/projects/smart-home.jpg"
     },
     {
       "id": "emergency-response-robot",
@@ -81,8 +81,8 @@
         "Camera Telemetry",
         "Wireless Communication"
       ],
-      "imageUrl": "./assets/projects/emergency-robot.svg",
-      "suggestedAssetPath": "assets/projects/emergency-robot.svg"
+      "imageUrl": "./assets/projects/emergency-robot.jpg",
+      "suggestedAssetPath": "assets/projects/emergency-robot.jpg"
     },
     {
       "id": "student-event-website",
@@ -102,8 +102,8 @@
         "JavaScript",
         "UI Design"
       ],
-      "imageUrl": "./assets/projects/student-event.svg",
-      "suggestedAssetPath": "assets/projects/student-event.svg"
+      "imageUrl": "./assets/projects/student-event.jpg",
+      "suggestedAssetPath": "assets/projects/student-event.jpg"
     }
   ],
   "sectionMeta": {

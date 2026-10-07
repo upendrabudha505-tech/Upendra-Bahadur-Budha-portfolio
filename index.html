@@ -21,7 +21,10 @@
       (function () {
         function loadStandaloneReactApp() {
           var root = document.getElementById('root');
-          if (window.__VITE_APP_MOUNTED__ || (root && root.getAttribute('data-mounted') === 'true')) {
+          if (
+            window.__VITE_APP_MOUNTED__ ||
+            (root && (root.getAttribute('data-mounted') === 'true' || root.children.length > 0))
+          ) {
             return;
           }
           var s = document.createElement('script');
@@ -34,15 +37,18 @@
           document.body.appendChild(s);
         }
 
+        var host = window.location.hostname || '';
         if (
           window.location.protocol === 'file:' ||
           window.location.port === '5500' ||
-          window.location.port === '5501'
+          window.location.port === '5501' ||
+          host.indexOf('upendrabudha.com.np') !== -1 ||
+          host.indexOf('github.io') !== -1
         ) {
           loadStandaloneReactApp();
         } else {
           window.addEventListener('load', function () {
-            setTimeout(loadStandaloneReactApp, 350);
+            setTimeout(loadStandaloneReactApp, 450);
           });
         }
       })();

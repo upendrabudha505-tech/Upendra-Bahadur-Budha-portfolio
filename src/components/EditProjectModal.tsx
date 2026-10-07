@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Trash2, Check, Edit3, Upload, ImagePlus, RotateCcw } from 'lucide-react';
 import { AcademicProject, DEFAULT_ACADEMIC_PROJECTS } from '../data/portfolioData';
+import { optimizeImageFile } from '../utils/imageOptimizer';
 
 interface EditProjectModalProps {
   project: AcademicProject | null;
@@ -50,17 +51,16 @@ export const EditProjectModal: React.FC<EditProjectModalProps> = ({
 
   const defaultProj = DEFAULT_ACADEMIC_PROJECTS.find((d) => d.id === project.id);
 
-  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setImageUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await optimizeImageFile(file, 1280, 900, 0.88);
+      setImageUrl(dataUrl);
+    } catch {
+      // Ignore error
+    }
     e.target.value = '';
   };
 

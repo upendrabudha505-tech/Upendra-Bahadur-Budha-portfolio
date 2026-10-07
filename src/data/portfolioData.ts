@@ -16,6 +16,14 @@
  * ============================================================================
  */
 
+import defaultProfilePhotoAsset from '../assets/images/profile.jpg';
+import nepalInvestImgAsset from '../assets/images/projects/nepal-invest.jpg';
+import clothingMarketplaceImgAsset from '../assets/images/projects/clothing-marketplace.jpg';
+import smartHomeImgAsset from '../assets/images/projects/smart-home.jpg';
+import emergencyRobotImgAsset from '../assets/images/projects/emergency-robot.jpg';
+import studentEventImgAsset from '../assets/images/projects/student-event.jpg';
+import defaultShowcaseVideoAsset from '../assets/video/upendra-showcase.mp4';
+
 export interface AcademicProject {
   id: string;
   title: string;
@@ -71,7 +79,17 @@ export interface CertificateItem {
  * and change this path to `"/assets/profile.jpg"`.
  * You can also click "Change Profile Photo" / "Upload New Photo" directly on the website!
  */
-export const DEFAULT_PROFILE_IMAGE = './assets/profile.jpg';
+export const DEFAULT_PROFILE_IMAGE = defaultProfilePhotoAsset || './assets/profile.jpg';
+export const DEFAULT_SHOWCASE_VIDEO_ASSET =
+  defaultShowcaseVideoAsset || './assets/video/upendra-showcase.mp4';
+
+export const DEFAULT_PROJECT_IMAGES_BY_ID: Record<string, string> = {
+  'nepal-invest': nepalInvestImgAsset,
+  'clothing-marketplace': clothingMarketplaceImgAsset,
+  'smart-home': smartHomeImgAsset,
+  'emergency-response-robot': emergencyRobotImgAsset,
+  'student-event-website': studentEventImgAsset,
+};
 
 /**
  * [3] ADD / UPDATE YOUR CV:
@@ -252,8 +270,8 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
     ],
     topics: ['System Concept', 'UI/UX Planning', 'Information Architecture', 'Academic Coursework'],
     // [2] ADD PROJECT IMAGE FOR NEPAL INVEST:
-    imageUrl: './assets/projects/nepal-invest.svg',
-    suggestedAssetPath: 'assets/projects/nepal-invest.svg',
+    imageUrl: nepalInvestImgAsset,
+    suggestedAssetPath: 'assets/projects/nepal-invest.jpg',
   },
   {
     id: 'clothing-marketplace',
@@ -271,8 +289,8 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
     ],
     topics: ['E-Commerce Concept', 'Social Commerce UI', 'Responsive Grid', 'Web Design'],
     // [2] ADD PROJECT IMAGE FOR CLOTHING MARKETPLACE:
-    imageUrl: './assets/projects/clothing-marketplace.svg',
-    suggestedAssetPath: 'assets/projects/clothing-marketplace.svg',
+    imageUrl: clothingMarketplaceImgAsset,
+    suggestedAssetPath: 'assets/projects/clothing-marketplace.jpg',
   },
   {
     id: 'smart-home',
@@ -290,8 +308,8 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
     ],
     topics: ['Smart Home Concept', 'Automation Logic', 'Design Thinking', 'Networked Devices'],
     // [2] ADD PROJECT IMAGE FOR SMART HOME:
-    imageUrl: './assets/projects/smart-home.svg',
-    suggestedAssetPath: 'assets/projects/smart-home.svg',
+    imageUrl: smartHomeImgAsset,
+    suggestedAssetPath: 'assets/projects/smart-home.jpg',
   },
   {
     id: 'emergency-response-robot',
@@ -309,8 +327,8 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
     ],
     topics: ['Robotics Concept', 'Sensor Systems', 'Camera Telemetry', 'Wireless Communication'],
     // [2] ADD PROJECT IMAGE FOR EMERGENCY RESPONSE ROBOT:
-    imageUrl: './assets/projects/emergency-robot.svg',
-    suggestedAssetPath: 'assets/projects/emergency-robot.svg',
+    imageUrl: emergencyRobotImgAsset,
+    suggestedAssetPath: 'assets/projects/emergency-robot.jpg',
   },
   {
     id: 'student-event-website',
@@ -328,8 +346,8 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
     ],
     topics: ['HTML5', 'CSS3', 'JavaScript', 'UI Design'],
     // [2] ADD PROJECT IMAGE FOR STUDENT EVENT WEBSITE:
-    imageUrl: './assets/projects/student-event.svg',
-    suggestedAssetPath: 'assets/projects/student-event.svg',
+    imageUrl: studentEventImgAsset,
+    suggestedAssetPath: 'assets/projects/student-event.jpg',
   },
 ];
 

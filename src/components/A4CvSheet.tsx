@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { EditableCvData, normalizeCvData } from '../utils/cvGenerator';
+import { optimizeImageFile } from '../utils/imageOptimizer';
 
 interface A4CvSheetProps {
   cvData: EditableCvData;
@@ -28,17 +29,16 @@ export const A4CvSheet: React.FC<A4CvSheetProps> = ({
   const cv = normalizeCvData(rawCvData);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !onUpdatePhoto) return;
     if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        onUpdatePhoto(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await optimizeImageFile(file, 900, 1200, 0.9);
+      onUpdatePhoto(dataUrl);
+    } catch {
+      // Ignore error
+    }
     e.target.value = '';
   };
 

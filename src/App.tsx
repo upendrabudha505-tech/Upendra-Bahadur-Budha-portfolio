@@ -49,6 +49,7 @@ import {
   SKILL_GROUPS,
   AREAS_OF_INTEREST,
   DEFAULT_ACADEMIC_PROJECTS,
+  DEFAULT_PROJECT_IMAGES_BY_ID,
   EARNED_CERTIFICATES,
   AcademicProject,
   CertificateItem,
@@ -59,6 +60,7 @@ import {
   getDefaultCvData,
   normalizeCvData,
 } from './utils/cvGenerator';
+import { optimizeImageFile } from './utils/imageOptimizer';
 import { ShortVideoSection } from './components/ShortVideoSection';
 import { CvEditorModal } from './components/CvEditorModal';
 import { A4CvSheet } from './components/A4CvSheet';
@@ -99,7 +101,18 @@ export default function App() {
   const [projectImages, setProjectImages] = useState<Record<string, string>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PROJECT_IMAGES);
-      return saved ? JSON.parse(saved) : {};
+      if (!saved) return {};
+      const parsed = JSON.parse(saved);
+      const cleaned: Record<string, string> = {};
+      if (parsed && typeof parsed === 'object') {
+        for (const [k, v] of Object.entries(parsed)) {
+          // Ignore legacy '__REMOVED__' values that were caused by old image onError handlers
+          if (typeof v === 'string' && v !== '__REMOVED__' && v.trim() !== '') {
+            cleaned[k] = v;
+          }
+        }
+      }
+      return cleaned;
     } catch {
       return {};
     }
@@ -112,9 +125,15 @@ export default function App() {
         const parsed: AcademicProject[] = JSON.parse(saved);
         return parsed.map((p) => {
           const def = DEFAULT_ACADEMIC_PROJECTS.find((d) => d.id === p.id);
+          const embeddedImg = DEFAULT_PROJECT_IMAGES_BY_ID[p.id];
+          const rawImg = p.imageUrl?.trim() || '';
+          const resolvedImg =
+            rawImg.startsWith('data:image/')
+              ? rawImg
+              : embeddedImg || rawImg || def?.imageUrl || '';
           return {
             ...p,
-            imageUrl: p.imageUrl || def?.imageUrl || '',
+            imageUrl: resolvedImg,
           };
         });
       }
@@ -277,11 +296,23 @@ export default function App() {
       .then((data) => {
         if (data?.photoDataUrl) {
           setCustomProfilePhoto(data.photoDataUrl);
-          localStorage.setItem(STORAGE_KEYS.PROFILE_IMAGE, data.photoDataUrl);
+          try {
+            localStorage.setItem(STORAGE_KEYS.PROFILE_IMAGE, data.photoDataUrl);
+          } catch {}
           setEditableCvData((prev) => ({
             ...normalizeCvData(prev),
             profilePhotoDataUrl: data.photoDataUrl,
           }));
+        } else {
+          // If this browser already has an uploaded data:image profile photo in localStorage, push it to the server
+          const localPhoto = localStorage.getItem(STORAGE_KEYS.PROFILE_IMAGE);
+          if (localPhoto && localPhoto.startsWith('data:image/')) {
+            fetch('/api/profile-photo', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ photoDataUrl: localPhoto }),
+            }).catch(() => {});
+          }
         }
       })
       .catch(() => {});
@@ -292,7 +323,18 @@ export default function App() {
         if (data?.cvData) {
           const normalized = normalizeCvData(data.cvData);
           setEditableCvData(normalized);
-          localStorage.setItem(STORAGE_KEYS.EDITABLE_CV_JSON, JSON.stringify(normalized));
+          if (
+            typeof data.cvData.profilePhotoDataUrl === 'string' &&
+            data.cvData.profilePhotoDataUrl.startsWith('data:image/')
+          ) {
+            setCustomProfilePhoto(data.cvData.profilePhotoDataUrl);
+            try {
+              localStorage.setItem(STORAGE_KEYS.PROFILE_IMAGE, data.cvData.profilePhotoDataUrl);
+            } catch {}
+          }
+          try {
+            localStorage.setItem(STORAGE_KEYS.EDITABLE_CV_JSON, JSON.stringify(normalized));
+          } catch {}
         }
       })
       .catch(() => {});
@@ -300,23 +342,67 @@ export default function App() {
     fetch('/api/projects')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (Array.isArray(data?.projects)) {
+        const serverProjImgs: Record<string, string> =
+          data?.projectImages && typeof data.projectImages === 'object' ? data.projectImages : {};
+
+        // Merge with any local data:image/ custom uploads
+        const combinedImgs: Record<string, string> = { ...serverProjImgs };
+        let hasUnsyncedLocalImg = false;
+        for (const [k, v] of Object.entries(projectImages)) {
+          if (typeof v === 'string' && v.startsWith('data:image/') && !combinedImgs[k]) {
+            combinedImgs[k] = v;
+            hasUnsyncedLocalImg = true;
+          }
+        }
+
+        if (Object.keys(combinedImgs).length > 0) {
+          setProjectImages(combinedImgs);
+          try {
+            localStorage.setItem(STORAGE_KEYS.PROJECT_IMAGES, JSON.stringify(combinedImgs));
+          } catch {}
+        }
+
+        if (Array.isArray(data?.projects) && data.projects.length > 0) {
           const merged = data.projects.map((p: AcademicProject) => {
             const def = DEFAULT_ACADEMIC_PROJECTS.find((d) => d.id === p.id);
+            const embeddedImg = DEFAULT_PROJECT_IMAGES_BY_ID[p.id];
+            const customImg =
+              combinedImgs[p.id] && combinedImgs[p.id].startsWith('data:image/')
+                ? combinedImgs[p.id]
+                : p.imageUrl && p.imageUrl.startsWith('data:image/')
+                ? p.imageUrl
+                : '';
             return {
               ...p,
-              imageUrl: p.imageUrl || def?.imageUrl || '',
+              imageUrl: customImg || embeddedImg || def?.imageUrl || p.imageUrl || '',
             };
           });
           setProjectsList(merged);
-          localStorage.setItem(STORAGE_KEYS.ALL_PROJECTS, JSON.stringify(merged));
+          try {
+            localStorage.setItem(STORAGE_KEYS.ALL_PROJECTS, JSON.stringify(merged));
+          } catch {}
+
+          if (hasUnsyncedLocalImg) {
+            fetch('/api/projects', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                projects: merged,
+                sectionMeta: data?.sectionMeta || projectsSectionMeta,
+                projectImages: combinedImgs,
+              }),
+            }).catch(() => {});
+          }
         }
+
         if (data?.sectionMeta) {
           setProjectsSectionMeta(data.sectionMeta);
-          localStorage.setItem(
-            STORAGE_KEYS.PROJECTS_SECTION_META,
-            JSON.stringify(data.sectionMeta)
-          );
+          try {
+            localStorage.setItem(
+              STORAGE_KEYS.PROJECTS_SECTION_META,
+              JSON.stringify(data.sectionMeta)
+            );
+          } catch {}
         }
       })
       .catch(() => {});
@@ -356,51 +442,56 @@ export default function App() {
   };
 
   // [1] Handler: Upload or change profile photo (Syncs to Server + CV Photo for all phones/visitors)
-  const handleProfilePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       showToast('Please select a valid image file (JPG, PNG, WEBP).');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        const dataUrl = reader.result;
-        setCustomProfilePhoto(dataUrl);
-        setProfileImgError(false);
-        const updatedCv = {
-          ...normalizeCvData(editableCvData),
-          profilePhotoDataUrl: dataUrl,
-        };
-        setEditableCvData(updatedCv);
-        try {
-          localStorage.setItem(STORAGE_KEYS.PROFILE_IMAGE, dataUrl);
-          localStorage.setItem(STORAGE_KEYS.EDITABLE_CV_JSON, JSON.stringify(updatedCv));
-        } catch {
-          // Ignore quota error
-        }
+    e.target.value = '';
+    try {
+      const dataUrl = await optimizeImageFile(file, 900, 1200, 0.9);
+      setCustomProfilePhoto(dataUrl);
+      setProfileImgError(false);
+      const updatedCv = {
+        ...normalizeCvData(editableCvData),
+        profilePhotoDataUrl: dataUrl,
+      };
+      setEditableCvData(updatedCv);
+      try {
+        localStorage.setItem(STORAGE_KEYS.PROFILE_IMAGE, dataUrl);
+        localStorage.setItem(STORAGE_KEYS.EDITABLE_CV_JSON, JSON.stringify(updatedCv));
+      } catch {
+        // Ignore quota error
+      }
+      await Promise.all([
         fetch('/api/profile-photo', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ photoDataUrl: dataUrl }),
-        }).catch(() => {});
+        }).catch(() => {}),
         fetch('/api/cv', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cvData: updatedCv }),
-        }).catch(() => {});
-        showToast('Profile & CV photo updated and saved on server for all phones/visitors!');
-      }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+        }).catch(() => {}),
+      ]);
+      showToast('Profile & CV photo updated and saved on server for all phones!');
+    } catch {
+      showToast('Could not process selected image.');
+    }
   };
 
   const handleResetProfilePhoto = () => {
     setCustomProfilePhoto(null);
     setProfileImgError(false);
     localStorage.removeItem(STORAGE_KEYS.PROFILE_IMAGE);
+    const updatedCv = {
+      ...normalizeCvData(editableCvData),
+      profilePhotoDataUrl: DEFAULT_PROFILE_IMAGE,
+    };
+    setEditableCvData(updatedCv);
     fetch('/api/profile-photo', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -410,42 +501,41 @@ export default function App() {
   };
 
   // [2] Handler: Add / Change / Remove Project Image
-  const handleProjectImageUpload = (projectId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProjectImageUpload = async (
+    projectId: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       showToast('Please select a valid image file (JPG, PNG, WEBP, SVG).');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        const dataUrl = reader.result;
-        const updated = { ...projectImages, [projectId]: dataUrl };
-        setProjectImages(updated);
-        const nextList = projectsList.map((p) =>
-          p.id === projectId ? { ...p, imageUrl: dataUrl } : p
-        );
-        persistProjectsAndMeta(nextList);
-        try {
-          localStorage.setItem(STORAGE_KEYS.PROJECT_IMAGES, JSON.stringify(updated));
-          showToast('Project picture added and saved for all devices!');
-        } catch {
-          showToast('Project picture updated.');
-        }
-      }
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    try {
+      const dataUrl = await optimizeImageFile(file, 1280, 900, 0.88);
+      const updated = { ...projectImages, [projectId]: dataUrl };
+      setProjectImages(updated);
+      const nextList = projectsList.map((p) =>
+        p.id === projectId ? { ...p, imageUrl: dataUrl } : p
+      );
+      await persistProjectsAndMeta(nextList, projectsSectionMeta, updated);
+      try {
+        localStorage.setItem(STORAGE_KEYS.PROJECT_IMAGES, JSON.stringify(updated));
+      } catch {}
+      showToast('Project picture uploaded and saved for all phones!');
+    } catch {
+      showToast('Could not process selected project picture.');
+    }
   };
 
   const handleRemoveProjectImage = (projectId: string) => {
-    const updated = { ...projectImages, [projectId]: '__REMOVED__' };
+    const updated = { ...projectImages, [projectId]: '__USER_REMOVED__' };
     setProjectImages(updated);
     const nextList = projectsList.map((p) =>
       p.id === projectId ? { ...p, imageUrl: '' } : p
     );
-    persistProjectsAndMeta(nextList);
+    persistProjectsAndMeta(nextList, projectsSectionMeta, updated);
     try {
       localStorage.setItem(STORAGE_KEYS.PROJECT_IMAGES, JSON.stringify(updated));
     } catch {}
@@ -455,7 +545,8 @@ export default function App() {
   // Persist projects list & section meta to localStorage and server
   const persistProjectsAndMeta = async (
     nextProjects: AcademicProject[],
-    nextMeta = projectsSectionMeta
+    nextMeta = projectsSectionMeta,
+    nextProjectImages = projectImages
   ) => {
     setProjectsList(nextProjects);
     setProjectsSectionMeta(nextMeta);
@@ -469,7 +560,11 @@ export default function App() {
       await fetch('/api/projects', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projects: nextProjects, sectionMeta: nextMeta }),
+        body: JSON.stringify({
+          projects: nextProjects,
+          sectionMeta: nextMeta,
+          projectImages: nextProjectImages,
+        }),
       });
     } catch {
       // Ignore network error
@@ -535,7 +630,7 @@ export default function App() {
     if (updated.imageUrl) {
       nextImgs[updated.id] = updated.imageUrl;
     } else {
-      nextImgs[updated.id] = '__REMOVED__';
+      nextImgs[updated.id] = '__USER_REMOVED__';
     }
     setProjectImages(nextImgs);
     try {
@@ -543,7 +638,7 @@ export default function App() {
     } catch {}
 
     const nextList = projectsList.map((p) => (p.id === updated.id ? updated : p));
-    persistProjectsAndMeta(nextList);
+    persistProjectsAndMeta(nextList, projectsSectionMeta, nextImgs);
     if (selectedProject?.id === updated.id) {
       setSelectedProject(updated);
     }
@@ -718,12 +813,22 @@ export default function App() {
 
   const allCertificates: CertificateItem[] = [...EARNED_CERTIFICATES, ...customCertificates];
 
-  const activeProfilePhoto = customProfilePhoto || DEFAULT_PROFILE_IMAGE;
+  const activeProfilePhoto =
+    customProfilePhoto &&
+    customProfilePhoto !== './assets/profile.jpg' &&
+    customProfilePhoto !== '/assets/profile.jpg' &&
+    customProfilePhoto !== './public/assets/profile.jpg'
+      ? customProfilePhoto
+      : DEFAULT_PROFILE_IMAGE;
 
   const getProjectImage = (project: AcademicProject): string => {
     const override = projectImages[project.id];
-    if (override === '__REMOVED__') return '';
-    if (override) return override;
+    if (override === '__USER_REMOVED__') return '';
+    if (override && override.startsWith('data:image/')) return override;
+    if (project.imageUrl && project.imageUrl.startsWith('data:image/')) return project.imageUrl;
+    const embeddedDefault = DEFAULT_PROJECT_IMAGES_BY_ID[project.id];
+    if (embeddedDefault) return embeddedDefault;
+    if (override && override !== '__REMOVED__') return override;
     if (project.imageUrl) return project.imageUrl;
     const def = DEFAULT_ACADEMIC_PROJECTS.find((d) => d.id === project.id);
     return def?.imageUrl || '';
@@ -1107,61 +1212,6 @@ export default function App() {
                         </p>
                       </div>
                     </div>
-                  </div>
-
-                  {/* [1] PROFILE IMAGE MANAGEMENT BAR */}
-                  <div
-                    className={`mt-3 p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 ${
-                      isDark
-                        ? 'bg-slate-900/60 border-slate-800/90'
-                        : 'bg-white border-slate-200/90'
-                    }`}
-                  >
-                    <input
-                      ref={profileFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfilePhotoUpload}
-                      className="hidden"
-                      id="profile-photo-upload-input"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => profileFileInputRef.current?.click()}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
-                        isDark
-                          ? 'border-slate-700 bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white'
-                          : 'border-slate-300 bg-slate-100 text-slate-800 hover:bg-slate-200'
-                      }`}
-                    >
-                      <Upload className="w-3.5 h-3.5 text-blue-500" />
-                      <span>Change Profile Photo</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => profileFileInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600/15 text-blue-400 hover:bg-blue-600/25 transition-colors cursor-pointer whitespace-nowrap"
-                    >
-                      <ImagePlus className="w-3.5 h-3.5" />
-                      <span>Upload New Photo</span>
-                    </button>
-
-                    {customProfilePhoto && (
-                      <button
-                        type="button"
-                        onClick={handleResetProfilePhoto}
-                        title="Restore default portrait"
-                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
-                          isDark
-                            ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                            : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
-                        }`}
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Reset</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1739,11 +1789,13 @@ export default function App() {
                             referrerPolicy="no-referrer"
                             onError={(e) => {
                               const img = e.currentTarget;
-                              if (!img.dataset.triedPublic && currentImg.startsWith('./assets/')) {
-                                img.dataset.triedPublic = '1';
-                                img.src = currentImg.replace('./assets/', './public/assets/');
-                              } else {
-                                handleRemoveProjectImage(project.id);
+                              const fallbackImg = DEFAULT_PROJECT_IMAGES_BY_ID[project.id];
+                              if (!img.dataset.triedFallback && fallbackImg && img.src !== fallbackImg) {
+                                img.dataset.triedFallback = '1';
+                                img.src = fallbackImg;
+                              } else if (!img.dataset.triedAssets) {
+                                img.dataset.triedAssets = '1';
+                                img.src = `./assets/projects/${project.id}.jpg`;
                               }
                             }}
                             className="w-full h-full object-cover"
