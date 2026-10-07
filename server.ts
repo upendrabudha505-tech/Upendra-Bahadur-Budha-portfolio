@@ -1,5 +1,6 @@
 import express from 'express';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
@@ -7,53 +8,81 @@ import { createServer as createViteServer } from 'vite';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DATA_DIR = path.join(__dirname, 'data');
-const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
-const CV_DATA_FILE = path.join(DATA_DIR, 'cv_data.json');
-const PROJECTS_DATA_FILE = path.join(DATA_DIR, 'projects_data.json');
+// Use local ./data directory when writable, with safe fallback to os.tmpdir()
+let activeDataDir = path.join(__dirname, 'data');
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(MESSAGES_FILE)) {
-    fs.writeFileSync(MESSAGES_FILE, JSON.stringify([], null, 2), 'utf-8');
+function getSafeDataDir() {
+  try {
+    if (!fs.existsSync(activeDataDir)) {
+      fs.mkdirSync(activeDataDir, { recursive: true });
+    }
+    return activeDataDir;
+  } catch {
+    activeDataDir = path.join(os.tmpdir(), 'upendra-portfolio-data');
+    try {
+      if (!fs.existsSync(activeDataDir)) {
+        fs.mkdirSync(activeDataDir, { recursive: true });
+      }
+    } catch {
+      // Ignore if tmpdir also fails
+    }
+    return activeDataDir;
   }
 }
 
-function readMessages() {
-  ensureDataDir();
+function getFilePath(filename: string): string {
+  return path.join(getSafeDataDir(), filename);
+}
+
+function readJsonFile(filename: string, fallbackValue: any): any {
   try {
-    const raw = fs.readFileSync(MESSAGES_FILE, 'utf-8');
+    const filePath = getFilePath(filename);
+    if (!fs.existsSync(filePath)) {
+      return fallbackValue;
+    }
+    const raw = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(raw);
   } catch {
-    return [];
+    return fallbackValue;
   }
 }
 
-function writeMessages(messages: unknown[]) {
-  ensureDataDir();
-  fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2), 'utf-8');
+function writeJsonFile(filename: string, data: any): void {
+  try {
+    const filePath = getFilePath(filename);
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error(`Warning: Could not persist ${filename}:`, err);
+  }
 }
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
-  app.use(express.json({ limit: '15mb' }));
+  app.use(express.json({ limit: '20mb' }));
+
+  // ==========================================================================
+  // HEALTH CHECK ENDPOINT
+  // ==========================================================================
+  app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
   // ==========================================================================
   // API ROUTES FOR VISITOR MESSAGES INBOX
   // ==========================================================================
   app.get('/api/messages', (_req, res) => {
-    const messages = readMessages();
-    res.json({ messages });
+    const messages = readJsonFile('messages.json', []);
+    res.json({ messages: Array.isArray(messages) ? messages : [] });
   });
 
   app.post('/api/messages', (req, res) => {
     const { fullName, email, subject, message } = req.body || {};
     if (!fullName || !email || !subject || !message) {
-      res.status(400).json({ error: 'All fields (fullName, email, subject, message) are required.' });
+      res
+        .status(400)
+        .json({ error: 'All fields (fullName, email, subject, message) are required.' });
       return;
     }
 
@@ -73,27 +102,28 @@ async function startServer() {
       read: false,
     };
 
-    const existing = readMessages();
-    const updated = [newMsg, ...existing];
-    writeMessages(updated);
+    const existing = readJsonFile('messages.json', []);
+    const list = Array.isArray(existing) ? existing : [];
+    const updated = [newMsg, ...list];
+    writeJsonFile('messages.json', updated);
     res.status(201).json({ message: newMsg, messages: updated });
   });
 
   app.patch('/api/messages/:id/read', (req, res) => {
     const { id } = req.params;
-    const existing = readMessages();
-    const updated = existing.map((m: { id: string; read?: boolean }) =>
-      m.id === id ? { ...m, read: true } : m
-    );
-    writeMessages(updated);
+    const existing = readJsonFile('messages.json', []);
+    const list = Array.isArray(existing) ? existing : [];
+    const updated = list.map((m) => (m && m.id === id ? { ...m, read: true } : m));
+    writeJsonFile('messages.json', updated);
     res.json({ messages: updated });
   });
 
   app.delete('/api/messages/:id', (req, res) => {
     const { id } = req.params;
-    const existing = readMessages();
-    const updated = existing.filter((m: { id: string }) => m.id !== id);
-    writeMessages(updated);
+    const existing = readJsonFile('messages.json', []);
+    const list = Array.isArray(existing) ? existing : [];
+    const updated = list.filter((m) => m && m.id !== id);
+    writeJsonFile('messages.json', updated);
     res.json({ messages: updated });
   });
 
@@ -101,27 +131,17 @@ async function startServer() {
   // API ROUTES FOR EDITABLE CV PERSISTENCE
   // ==========================================================================
   app.get('/api/cv', (_req, res) => {
-    ensureDataDir();
-    if (!fs.existsSync(CV_DATA_FILE)) {
-      res.json({ cvData: null });
-      return;
-    }
-    try {
-      const raw = fs.readFileSync(CV_DATA_FILE, 'utf-8');
-      res.json({ cvData: JSON.parse(raw) });
-    } catch {
-      res.json({ cvData: null });
-    }
+    const cvData = readJsonFile('cv_data.json', null);
+    res.json({ cvData });
   });
 
   app.put('/api/cv', (req, res) => {
-    ensureDataDir();
     const { cvData } = req.body || {};
     if (!cvData) {
       res.status(400).json({ error: 'Missing cvData payload.' });
       return;
     }
-    fs.writeFileSync(CV_DATA_FILE, JSON.stringify(cvData, null, 2), 'utf-8');
+    writeJsonFile('cv_data.json', cvData);
     res.json({ cvData });
   });
 
@@ -129,38 +149,31 @@ async function startServer() {
   // API ROUTES FOR EDITABLE / DELETABLE ACADEMIC PROJECTS PERSISTENCE
   // ==========================================================================
   app.get('/api/projects', (_req, res) => {
-    ensureDataDir();
-    if (!fs.existsSync(PROJECTS_DATA_FILE)) {
-      res.json({ projects: null, sectionMeta: null });
-      return;
-    }
-    try {
-      const raw = fs.readFileSync(PROJECTS_DATA_FILE, 'utf-8');
-      res.json(JSON.parse(raw));
-    } catch {
-      res.json({ projects: null, sectionMeta: null });
-    }
+    const data = readJsonFile('projects_data.json', { projects: null, sectionMeta: null });
+    res.json(data || { projects: null, sectionMeta: null });
   });
 
   app.put('/api/projects', (req, res) => {
-    ensureDataDir();
     const { projects, sectionMeta } = req.body || {};
     const payload = { projects: projects ?? null, sectionMeta: sectionMeta ?? null };
-    fs.writeFileSync(PROJECTS_DATA_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+    writeJsonFile('projects_data.json', payload);
     res.json(payload);
   });
 
   // ==========================================================================
   // VITE MIDDLEWARE (DEVELOPMENT) OR STATIC ASSETS (PRODUCTION)
   // ==========================================================================
-  if (process.env.NODE_ENV !== 'production') {
+  const distPath = path.join(__dirname, 'dist');
+  const useProdStatic =
+    process.env.NODE_ENV === 'production' && fs.existsSync(path.join(distPath, 'index.html'));
+
+  if (!useProdStatic) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(__dirname, 'dist');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));

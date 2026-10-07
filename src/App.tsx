@@ -920,6 +920,19 @@ export default function App() {
                   >
                     <span>Contact Me</span>
                   </a>
+
+                  <a
+                    href="/upendra-bahadur-budha-portfolio.zip"
+                    download="upendra-bahadur-budha-portfolio.zip"
+                    className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border transition-colors duration-150 whitespace-nowrap shrink-0 ${
+                      isDark
+                        ? 'border-emerald-700/60 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-900/40'
+                        : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                    }`}
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Website ZIP</span>
+                  </a>
                 </div>
 
                 {/* Social & Verified Profile Links (LinkedIn, Credly, Facebook, Instagram, Email) */}
@@ -1011,7 +1024,19 @@ export default function App() {
                           src={activeProfilePhoto}
                           alt="Upendra Bahadur Budha — BSc IT Cloud Computing Student at LBEF College"
                           referrerPolicy="no-referrer"
-                          onError={() => setProfileImgError(true)}
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            if (!img.dataset.triedPublic) {
+                              img.dataset.triedPublic = '1';
+                              img.src = './public/assets/profile.jpg';
+                            } else if (!img.dataset.triedSrc) {
+                              img.dataset.triedSrc = '1';
+                              img.src =
+                                './src/assets/images/upendra_profile_portrait_1791389933549.jpg';
+                            } else {
+                              setProfileImgError(true);
+                            }
+                          }}
                           className="w-full h-full object-cover object-top"
                         />
                       ) : (

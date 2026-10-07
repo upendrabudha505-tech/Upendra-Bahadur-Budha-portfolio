@@ -71,7 +71,7 @@ export interface CertificateItem {
  * and change this path to `"/assets/profile.jpg"`.
  * You can also click "Change Profile Photo" / "Upload New Photo" directly on the website!
  */
-export const DEFAULT_PROFILE_IMAGE = '/src/assets/images/upendra_profile_portrait_1791389933549.jpg';
+export const DEFAULT_PROFILE_IMAGE = './assets/profile.jpg';
 
 /**
  * [3] ADD / UPDATE YOUR CV:
