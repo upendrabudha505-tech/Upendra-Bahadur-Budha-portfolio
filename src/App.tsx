@@ -108,7 +108,17 @@ export default function App() {
   const [projectsList, setProjectsList] = useState<AcademicProject[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ALL_PROJECTS);
-      return saved ? JSON.parse(saved) : DEFAULT_ACADEMIC_PROJECTS;
+      if (saved) {
+        const parsed: AcademicProject[] = JSON.parse(saved);
+        return parsed.map((p) => {
+          const def = DEFAULT_ACADEMIC_PROJECTS.find((d) => d.id === p.id);
+          return {
+            ...p,
+            imageUrl: p.imageUrl || def?.imageUrl || '',
+          };
+        });
+      }
+      return DEFAULT_ACADEMIC_PROJECTS;
     } catch {
       return DEFAULT_ACADEMIC_PROJECTS;
     }
@@ -261,6 +271,21 @@ export default function App() {
 
   useEffect(() => {
     fetchMessagesFromServer();
+
+    fetch('/api/profile-photo')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.photoDataUrl) {
+          setCustomProfilePhoto(data.photoDataUrl);
+          localStorage.setItem(STORAGE_KEYS.PROFILE_IMAGE, data.photoDataUrl);
+          setEditableCvData((prev) => ({
+            ...normalizeCvData(prev),
+            profilePhotoDataUrl: data.photoDataUrl,
+          }));
+        }
+      })
+      .catch(() => {});
+
     fetch('/api/cv')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -276,8 +301,15 @@ export default function App() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (Array.isArray(data?.projects)) {
-          setProjectsList(data.projects);
-          localStorage.setItem(STORAGE_KEYS.ALL_PROJECTS, JSON.stringify(data.projects));
+          const merged = data.projects.map((p: AcademicProject) => {
+            const def = DEFAULT_ACADEMIC_PROJECTS.find((d) => d.id === p.id);
+            return {
+              ...p,
+              imageUrl: p.imageUrl || def?.imageUrl || '',
+            };
+          });
+          setProjectsList(merged);
+          localStorage.setItem(STORAGE_KEYS.ALL_PROJECTS, JSON.stringify(merged));
         }
         if (data?.sectionMeta) {
           setProjectsSectionMeta(data.sectionMeta);
@@ -295,6 +327,17 @@ export default function App() {
 
   const handleSaveEditableCv = async (updated: EditableCvData) => {
     setEditableCvData(updated);
+    if (updated.profilePhotoDataUrl && updated.profilePhotoDataUrl.startsWith('data:image/')) {
+      setCustomProfilePhoto(updated.profilePhotoDataUrl);
+      try {
+        localStorage.setItem(STORAGE_KEYS.PROFILE_IMAGE, updated.profilePhotoDataUrl);
+      } catch {}
+      fetch('/api/profile-photo', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoDataUrl: updated.profilePhotoDataUrl }),
+      }).catch(() => {});
+    }
     try {
       localStorage.setItem(STORAGE_KEYS.EDITABLE_CV_JSON, JSON.stringify(updated));
     } catch {
@@ -309,10 +352,10 @@ export default function App() {
     } catch {
       // Ignore network error
     }
-    showToast('CV updated! Clicking "Download CV" will now download your edited CV.');
+    showToast('CV & Photo saved for all devices! Clicking "Download CV" will serve your updated CV.');
   };
 
-  // [1] Handler: Upload or change profile photo
+  // [1] Handler: Upload or change profile photo (Syncs to Server + CV Photo for all phones/visitors)
   const handleProfilePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -323,14 +366,31 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        setCustomProfilePhoto(reader.result);
+        const dataUrl = reader.result;
+        setCustomProfilePhoto(dataUrl);
         setProfileImgError(false);
+        const updatedCv = {
+          ...normalizeCvData(editableCvData),
+          profilePhotoDataUrl: dataUrl,
+        };
+        setEditableCvData(updatedCv);
         try {
-          localStorage.setItem(STORAGE_KEYS.PROFILE_IMAGE, reader.result);
-          showToast('Profile photo updated and saved to browser storage.');
+          localStorage.setItem(STORAGE_KEYS.PROFILE_IMAGE, dataUrl);
+          localStorage.setItem(STORAGE_KEYS.EDITABLE_CV_JSON, JSON.stringify(updatedCv));
         } catch {
-          showToast('Profile photo updated for this session (image is large).');
+          // Ignore quota error
         }
+        fetch('/api/profile-photo', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photoDataUrl: dataUrl }),
+        }).catch(() => {});
+        fetch('/api/cv', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvData: updatedCv }),
+        }).catch(() => {});
+        showToast('Profile & CV photo updated and saved on server for all phones/visitors!');
       }
     };
     reader.readAsDataURL(file);
@@ -341,6 +401,11 @@ export default function App() {
     setCustomProfilePhoto(null);
     setProfileImgError(false);
     localStorage.removeItem(STORAGE_KEYS.PROFILE_IMAGE);
+    fetch('/api/profile-photo', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photoDataUrl: null }),
+    }).catch(() => {});
     showToast('Restored default studio portrait.');
   };
 
@@ -349,19 +414,24 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      showToast('Please select a valid image file (JPG, PNG, WEBP).');
+      showToast('Please select a valid image file (JPG, PNG, WEBP, SVG).');
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        const updated = { ...projectImages, [projectId]: reader.result };
+        const dataUrl = reader.result;
+        const updated = { ...projectImages, [projectId]: dataUrl };
         setProjectImages(updated);
+        const nextList = projectsList.map((p) =>
+          p.id === projectId ? { ...p, imageUrl: dataUrl } : p
+        );
+        persistProjectsAndMeta(nextList);
         try {
           localStorage.setItem(STORAGE_KEYS.PROJECT_IMAGES, JSON.stringify(updated));
-          showToast('Project image added and saved.');
+          showToast('Project picture added and saved for all devices!');
         } catch {
-          showToast('Project image updated for this session.');
+          showToast('Project picture updated.');
         }
       }
     };
@@ -370,11 +440,16 @@ export default function App() {
   };
 
   const handleRemoveProjectImage = (projectId: string) => {
-    const updated = { ...projectImages };
-    delete updated[projectId];
+    const updated = { ...projectImages, [projectId]: '__REMOVED__' };
     setProjectImages(updated);
-    localStorage.setItem(STORAGE_KEYS.PROJECT_IMAGES, JSON.stringify(updated));
-    showToast('Project image removed. Showing "Project Image Coming Soon" placeholder.');
+    const nextList = projectsList.map((p) =>
+      p.id === projectId ? { ...p, imageUrl: '' } : p
+    );
+    persistProjectsAndMeta(nextList);
+    try {
+      localStorage.setItem(STORAGE_KEYS.PROJECT_IMAGES, JSON.stringify(updated));
+    } catch {}
+    showToast('Project image removed.');
   };
 
   // Persist projects list & section meta to localStorage and server
@@ -456,6 +531,17 @@ export default function App() {
   };
 
   const handleUpdateAcademicProject = (updated: AcademicProject) => {
+    const nextImgs = { ...projectImages };
+    if (updated.imageUrl) {
+      nextImgs[updated.id] = updated.imageUrl;
+    } else {
+      nextImgs[updated.id] = '__REMOVED__';
+    }
+    setProjectImages(nextImgs);
+    try {
+      localStorage.setItem(STORAGE_KEYS.PROJECT_IMAGES, JSON.stringify(nextImgs));
+    } catch {}
+
     const nextList = projectsList.map((p) => (p.id === updated.id ? updated : p));
     persistProjectsAndMeta(nextList);
     if (selectedProject?.id === updated.id) {
@@ -483,8 +569,12 @@ export default function App() {
       title: 'Academic Projects & Concepts',
       subtitle: PERSONAL_INFO.academicNote,
     };
+    setProjectImages({});
+    try {
+      localStorage.removeItem(STORAGE_KEYS.PROJECT_IMAGES);
+    } catch {}
     persistProjectsAndMeta(DEFAULT_ACADEMIC_PROJECTS, defaultMeta);
-    showToast('Restored all 5 default academic projects.');
+    showToast('Restored all 5 default academic projects and their pictures.');
   };
 
   // [3] Handler: Replace CV PDF file
@@ -631,7 +721,12 @@ export default function App() {
   const activeProfilePhoto = customProfilePhoto || DEFAULT_PROFILE_IMAGE;
 
   const getProjectImage = (project: AcademicProject): string => {
-    return projectImages[project.id] || project.imageUrl || '';
+    const override = projectImages[project.id];
+    if (override === '__REMOVED__') return '';
+    if (override) return override;
+    if (project.imageUrl) return project.imageUrl;
+    const def = DEFAULT_ACADEMIC_PROJECTS.find((d) => d.id === project.id);
+    return def?.imageUrl || '';
   };
 
   return (
@@ -732,7 +827,7 @@ export default function App() {
             ))}
           </nav>
 
-          {/* Zone 3: 1-2 Primary Actions (Theme Toggle + Download CV + Mobile Trigger) */}
+          {/* Zone 3: Primary Actions (Theme Toggle + Mobile Trigger) */}
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               type="button"
@@ -745,15 +840,6 @@ export default function App() {
               }`}
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => triggerCvDownload(editableCvData, customCvDataUrl, customCvName)}
-              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download CV</span>
             </button>
 
             <button
@@ -802,19 +888,6 @@ export default function App() {
                   {item.label}
                 </a>
               ))}
-            </div>
-            <div className="pt-2 border-t border-slate-800/40 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  triggerCvDownload(editableCvData, customCvDataUrl, customCvName);
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors whitespace-nowrap"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download CV</span>
-              </button>
             </div>
           </div>
         )}
@@ -886,19 +959,6 @@ export default function App() {
 
                   <button
                     type="button"
-                    onClick={() => triggerCvDownload(editableCvData, customCvDataUrl, customCvName)}
-                    className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-lg border transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer ${
-                      isDark
-                        ? 'border-slate-700 bg-slate-900/80 text-slate-100 hover:bg-slate-800 hover:border-slate-600'
-                        : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-100'
-                    }`}
-                  >
-                    <Download className="w-4 h-4 text-blue-500" />
-                    <span>Download CV</span>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => setIsCvEditorOpen(true)}
                     className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer ${
                       isDark
@@ -919,19 +979,6 @@ export default function App() {
                     }`}
                   >
                     <span>Contact Me</span>
-                  </a>
-
-                  <a
-                    href="/upendra-bahadur-budha-portfolio.zip"
-                    download="upendra-bahadur-budha-portfolio.zip"
-                    className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border transition-colors duration-150 whitespace-nowrap shrink-0 ${
-                      isDark
-                        ? 'border-emerald-700/60 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-900/40'
-                        : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-                    }`}
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download Website ZIP</span>
                   </a>
                 </div>
 
@@ -1049,10 +1096,11 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* Subtle bottom contrast scrim with name caption */}
+                      {/* Subtle bottom contrast scrim with name caption & verified tick */}
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-5 pt-12">
-                        <p className="font-display text-base font-bold text-white">
-                          {PERSONAL_INFO.name}
+                        <p className="font-display text-base font-bold text-white inline-flex items-center gap-1.5">
+                          <span>{PERSONAL_INFO.name}</span>
+                          <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
                         </p>
                         <p className="text-xs text-slate-300 mt-0.5">
                           {PERSONAL_INFO.course} · {PERSONAL_INFO.college}
@@ -1689,7 +1737,15 @@ export default function App() {
                             src={currentImg}
                             alt={`${project.title} — ${project.badge}`}
                             referrerPolicy="no-referrer"
-                            onError={() => handleRemoveProjectImage(project.id)}
+                            onError={(e) => {
+                              const img = e.currentTarget;
+                              if (!img.dataset.triedPublic && currentImg.startsWith('./assets/')) {
+                                img.dataset.triedPublic = '1';
+                                img.src = currentImg.replace('./assets/', './public/assets/');
+                              } else {
+                                handleRemoveProjectImage(project.id);
+                              }
+                            }}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -2068,25 +2124,12 @@ export default function App() {
                     isDark ? 'text-slate-300' : 'text-slate-600'
                   }`}
                 >
-                  Download my CV to learn more about my education, skills and academic work.
+                  View my curriculum vitae below to learn more about my education, skills and
+                  academic work.
                 </p>
-                {customCvName && (
-                  <p className="text-xs font-mono text-blue-400 pt-1">
-                    Active custom CV file: {customCvName}
-                  </p>
-                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => triggerCvDownload(editableCvData, customCvDataUrl, customCvName)}
-                  className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download CV</span>
-                </button>
-
                 <button
                   type="button"
                   onClick={() => setIsCvEditorOpen(true)}
@@ -2110,38 +2153,6 @@ export default function App() {
                 >
                   <span>Contact Me</span>
                 </a>
-
-                {/* [3] Optional Upload / Replace CV PDF button for easy management */}
-                <input
-                  ref={cvFileInputRef}
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  onChange={handleCvUpload}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => cvFileInputRef.current?.click()}
-                  title="Replace placeholder CV PDF with your own PDF file"
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-3 text-xs font-medium rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
-                    isDark
-                      ? 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-white hover:border-slate-700'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Replace CV PDF</span>
-                </button>
-
-                {customCvDataUrl && (
-                  <button
-                    type="button"
-                    onClick={handleResetCv}
-                    className="text-xs text-slate-400 hover:text-slate-200 underline cursor-pointer px-2"
-                  >
-                    Reset CV
-                  </button>
-                )}
               </div>
             </div>
 
@@ -2699,6 +2710,7 @@ export default function App() {
           ===================================================================== */}
       <EditProjectModal
         project={editingProject}
+        currentImageUrl={editingProject ? getProjectImage(editingProject) : undefined}
         isDark={isDark}
         onClose={() => setEditingProject(null)}
         onSaveProject={handleUpdateAcademicProject}
@@ -2749,6 +2761,14 @@ export default function App() {
                     src={getProjectImage(selectedProject)}
                     alt={selectedProject.title}
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      const src = getProjectImage(selectedProject);
+                      if (!img.dataset.triedPublic && src.startsWith('./assets/')) {
+                        img.dataset.triedPublic = '1';
+                        img.src = src.replace('./assets/', './public/assets/');
+                      }
+                    }}
                     className="w-full h-full object-cover"
                   />
                 </div>

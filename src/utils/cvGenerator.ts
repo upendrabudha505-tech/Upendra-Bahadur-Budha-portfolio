@@ -14,6 +14,7 @@
  */
 
 import {
+  DEFAULT_PROFILE_IMAGE,
   PERSONAL_INFO,
   SOCIAL_LINKS,
   CV_DOWNLOAD_FILENAME,
@@ -107,7 +108,7 @@ export function getDefaultCvData(): EditableCvData {
     linkedinUrl: 'http://www.linkedin.com/in/upendra-budha-6b9240329',
     credlyDisplay: 'https://www.credly.com/users/upendra-bahadur-budha',
     credlyUrl: SOCIAL_LINKS.credlyUrl || 'https://www.credly.com/users/upendra-bahadur-budha',
-    profilePhotoDataUrl: '',
+    profilePhotoDataUrl: DEFAULT_PROFILE_IMAGE,
     photoShape: 'rounded-square',
     careerObjective:
       'Motivated Bachelor of Science in Information Technology (BSc IT) student at LBEF College seeking an internship, trainee, part-time, or entry-level opportunity in IT, Cisco Networking, Cloud Computing, Cybersecurity, and Web Development. Eager to apply academic knowledge, practical technical skills, and collaborative problem-solving to contribute effectively while growing in a professional IT environment.',
@@ -225,6 +226,10 @@ export function normalizeCvData(raw?: Partial<EditableCvData> | null): EditableC
   return {
     ...def,
     ...raw,
+    profilePhotoDataUrl:
+      raw.profilePhotoDataUrl && raw.profilePhotoDataUrl.trim() !== ''
+        ? raw.profilePhotoDataUrl
+        : def.profilePhotoDataUrl,
     education: Array.isArray(raw.education) && raw.education.length > 0 ? raw.education : def.education,
     technicalSkillsList:
       Array.isArray(raw.technicalSkillsList) && raw.technicalSkillsList.length > 0

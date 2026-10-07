@@ -8,6 +8,7 @@ import {
   Mail,
   MapPin,
   GraduationCap,
+  CheckCircle2,
 } from 'lucide-react';
 import { EditableCvData, normalizeCvData } from '../utils/cvGenerator';
 
@@ -53,8 +54,9 @@ export const A4CvSheet: React.FC<A4CvSheetProps> = ({
         {/* Left: Name, Headline, Status & Contact Details */}
         <div className="space-y-2 flex-1 min-w-0">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-950 uppercase">
-              {cv.fullName}
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-950 uppercase inline-flex items-center gap-2">
+              <span>{cv.fullName}</span>
+              <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0" aria-label="Verified Profile" />
             </h1>
             <p className="text-sm sm:text-base font-semibold text-blue-800 mt-0.5">
               {cv.educationHeadline}
@@ -137,11 +139,30 @@ export const A4CvSheet: React.FC<A4CvSheetProps> = ({
             }`}
           >
             {cv.profilePhotoDataUrl ? (
-              <img
-                src={cv.profilePhotoDataUrl}
-                alt={`${cv.fullName} Profile Photo`}
-                className="w-full h-full object-cover object-top"
-              />
+              <>
+                <img
+                  src={cv.profilePhotoDataUrl}
+                  alt={`${cv.fullName} Profile Photo`}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.dataset.triedPublic) {
+                      img.dataset.triedPublic = '1';
+                      img.src = './public/assets/profile.jpg';
+                    } else if (!img.dataset.triedSrc) {
+                      img.dataset.triedSrc = '1';
+                      img.src =
+                        './src/assets/images/upendra_passport_suit_portrait_1791404279357.jpg';
+                    }
+                  }}
+                  className="w-full h-full object-cover object-top"
+                />
+                <span
+                  title="Verified Profile Photo"
+                  className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </span>
+              </>
             ) : (
               <button
                 type="button"

@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <!-- Background -->
+  <rect width="1280" height="720" fill="#FDF7F2" />
+
+  <!-- Top Navbar -->
+  <rect x="0" y="0" width="1280" height="72" fill="#FDF7F2" />
+  <circle cx="78" cy="36" r="8" fill="#F43F5E" />
+  <text x="94" y="43" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1E293B">Chhota<tspan fill="#E11D48" font-style="italic">Closet</tspan></text>
+
+  <!-- Search Pill -->
+  <rect x="230" y="14" width="200" height="42" rx="21" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" />
+  <text x="250" y="40" font-family="sans-serif" font-size="13" fill="#64748B">All ⌄   🔍 Try "college ou</text>
+
+  <!-- Nav Links -->
+  <text x="456" y="40" font-family="sans-serif" font-size="14" font-weight="600" fill="#1E293B">Explore</text>
+  <text x="526" y="40" font-family="sans-serif" font-size="14" font-weight="600" fill="#1E293B">🎬 Reels</text>
+  <text x="602" y="40" font-family="sans-serif" font-size="14" font-weight="600" fill="#1E293B">Outfit Builder</text>
+  <text x="712" y="40" font-family="sans-serif" font-size="14" font-weight="600" fill="#1E293B">Festivals</text>
+  <text x="790" y="40" font-family="sans-serif" font-size="14" font-weight="600" fill="#1E293B">Trending</text>
+  <text x="870" y="40" font-family="sans-serif" font-size="14" font-weight="600" fill="#1E293B">Boards</text>
+  <text x="938" y="40" font-family="sans-serif" font-size="14" font-weight="600" fill="#1E293B">Battle</text>
+  <text x="998" y="40" font-family="sans-serif" font-size="14" font-weight="600" fill="#1E293B">More ⌄</text>
+
+  <!-- Hero Section -->
+  <text x="72" y="122" font-family="sans-serif" font-size="14" font-weight="700" fill="#E11D48">Little wardrobes, big personality</text>
+  <text x="72" y="180" font-family="Georgia, serif" font-size="52" font-weight="900" font-style="italic" fill="#0F172A">Discover the look. Build the outfit.</text>
+  <text x="72" y="242" font-family="Georgia, serif" font-size="52" font-weight="900" font-style="italic" fill="#0F172A">Shop it whole.</text>
+
+  <text x="72" y="284" font-family="sans-serif" font-size="16" fill="#475569">Browse a Pinterest-style feed of boys' and girls' fashion from across Nepal, save what</text>
+  <text x="72" y="310" font-family="sans-serif" font-size="16" fill="#475569">catches your eye, then add the complete look to your cart in one tap. Prices in NPR,</text>
+  <text x="72" y="336" font-family="sans-serif" font-size="16" fill="#475569">delivery across Nepal.</text>
+
+  <!-- CTA Buttons -->
+  <rect x="72" y="362" width="144" height="48" rx="24" fill="#0F172A" />
+  <text x="144" y="391" font-family="sans-serif" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">✨ Build my outfit</text>
+
+  <rect x="228" y="362" width="124" height="48" rx="24" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" />
+  <text x="290" y="391" font-family="sans-serif" font-size="14" font-weight="700" fill="#0F172A" text-anchor="middle">+ Publish a pin</text>
+
+  <!-- 5 Feature Cards -->
+  <g transform="translate(72, 434)">
+    <rect x="0" y="0" width="216" height="106" rx="18" fill="#FFFFFF" stroke="#F1E4DA" stroke-width="1.5" />
+    <rect x="16" y="30" width="38" height="38" rx="10" fill="#FFE4E6" />
+    <text x="35" y="55" font-size="18" text-anchor="middle">🪄</text>
+    <text x="66" y="34" font-family="sans-serif" font-size="14" font-weight="800" fill="#0F172A">Outfit Builder</text>
+    <text x="66" y="54" font-family="sans-serif" font-size="11.5" fill="#64748B">Pick occasion, season</text>
+    <text x="66" y="70" font-family="sans-serif" font-size="11.5" fill="#64748B">and budget. Get a</text>
+    <text x="66" y="86" font-family="sans-serif" font-size="11.5" fill="#64748B">complete look.</text>
+
+    <rect x="228" y="0" width="216" height="106" rx="18" fill="#FFFFFF" stroke="#F1E4DA" stroke-width="1.5" />
+    <rect x="244" y="30" width="38" height="38" rx="10" fill="#FEF3C7" />
+    <text x="263" y="55" font-size="18" text-anchor="middle">🪙</text>
+    <text x="294" y="34" font-family="sans-serif" font-size="14" font-weight="800" fill="#0F172A">Budget Finder</text>
+    <text x="294" y="54" font-family="sans-serif" font-size="11.5" fill="#64748B">Complete outfits under</text>
+    <text x="294" y="70" font-family="sans-serif" font-size="11.5" fill="#64748B">Rs. 999 to Rs. 9,999.</text>
+
+    <rect x="456" y="0" width="216" height="106" rx="18" fill="#FFFFFF" stroke="#F1E4DA" stroke-width="1.5" />
+    <rect x="472" y="30" width="38" height="38" rx="10" fill="#FCE7F3" />
+    <text x="491" y="55" font-size="18" text-anchor="middle">🎁</text>
+    <text x="522" y="34" font-family="sans-serif" font-size="14" font-weight="800" fill="#0F172A">Festival Fashion</text>
+    <text x="522" y="54" font-family="sans-serif" font-size="11.5" fill="#64748B">Dashain, Tihar, Teej, Holi</text>
+    <text x="522" y="70" font-family="sans-serif" font-size="11.5" fill="#64748B">and more.</text>
+
+    <rect x="684" y="0" width="216" height="106" rx="18" fill="#FFFFFF" stroke="#F1E4DA" stroke-width="1.5" />
+    <rect x="700" y="30" width="38" height="38" rx="10" fill="#EDE9FE" />
+    <text x="719" y="55" font-size="18" text-anchor="middle">🔥</text>
+    <text x="750" y="34" font-family="sans-serif" font-size="14" font-weight="800" fill="#0F172A">Nepal Trend Radar</text>
+    <text x="750" y="54" font-family="sans-serif" font-size="11.5" fill="#64748B">What's trending in</text>
+    <text x="750" y="70" font-family="sans-serif" font-size="11.5" fill="#64748B">Kathmandu, Pokhara</text>
+    <text x="750" y="86" font-family="sans-serif" font-size="11.5" fill="#64748B">and beyond.</text>
+
+    <rect x="912" y="0" width="216" height="106" rx="18" fill="#FFFFFF" stroke="#F1E4DA" stroke-width="1.5" />
+    <rect x="928" y="30" width="38" height="38" rx="10" fill="#DBEAFE" />
+    <text x="947" y="55" font-size="18" text-anchor="middle">⚡</text>
+    <text x="978" y="34" font-family="sans-serif" font-size="14" font-weight="800" fill="#0F172A">Outfit Battle</text>
+    <text x="978" y="54" font-family="sans-serif" font-size="11.5" fill="#64748B">Vote: which look would</text>
+    <text x="978" y="70" font-family="sans-serif" font-size="11.5" fill="#64748B">you wear?</text>
+  </g>
+
+  <!-- Story Circles -->
+  <g transform="translate(72, 575)">
+    <circle cx="28" cy="28" r="28" fill="#6366F1" />
+    <text x="28" y="34" font-family="Georgia, serif" font-size="16" font-weight="700" fill="#FFF" text-anchor="middle">Y</text>
+    <text x="28" y="74" font-family="sans-serif" font-size="11" fill="#475569" text-anchor="middle">Your story</text>
+
+    <circle cx="104" cy="28" r="28" fill="#F97316" />
+    <text x="104" y="34" font-family="Georgia, serif" font-size="16" font-weight="700" fill="#FFF" text-anchor="middle">TT</text>
+    <text x="104" y="74" font-family="sans-serif" font-size="11" fill="#475569" text-anchor="middle">Thamel</text>
+
+    <circle cx="180" cy="28" r="28" fill="#EC4899" />
+    <text x="180" y="34" font-family="Georgia, serif" font-size="16" font-weight="700" fill="#FFF" text-anchor="middle">BT</text>
+    <text x="180" y="74" font-family="sans-serif" font-size="11" fill="#475569" text-anchor="middle">Bibek</text>
+
+    <circle cx="256" cy="28" r="28" fill="#22C55E" />
+    <text x="256" y="34" font-family="Georgia, serif" font-size="16" font-weight="700" fill="#FFF" text-anchor="middle">PT</text>
+    <text x="256" y="74" font-family="sans-serif" font-size="11" fill="#475569" text-anchor="middle">Patan</text>
+
+    <circle cx="332" cy="28" r="28" fill="#8B5CF6" />
+    <text x="332" y="34" font-family="Georgia, serif" font-size="16" font-weight="700" fill="#FFF" text-anchor="middle">RM</text>
+    <text x="332" y="74" font-family="sans-serif" font-size="11" fill="#475569" text-anchor="middle">Ritika</text>
+
+    <circle cx="408" cy="28" r="28" fill="#3B82F6" />
+    <text x="408" y="34" font-family="Georgia, serif" font-size="16" font-weight="700" fill="#FFF" text-anchor="middle">LB</text>
+    <text x="408" y="74" font-family="sans-serif" font-size="11" fill="#475569" text-anchor="middle">Lakeside</text>
+  </g>
+</svg>

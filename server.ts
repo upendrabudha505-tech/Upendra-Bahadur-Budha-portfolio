@@ -128,6 +128,39 @@ async function startServer() {
   });
 
   // ==========================================================================
+  // API ROUTES FOR PROFILE & CV PHOTO PERSISTENCE ACROSS ALL DEVICES/PHONES
+  // ==========================================================================
+  app.get('/api/profile-photo', (_req, res) => {
+    const data = readJsonFile('profile_photo.json', { photoDataUrl: null });
+    res.json(data || { photoDataUrl: null });
+  });
+
+  app.put('/api/profile-photo', (req, res) => {
+    const { photoDataUrl } = req.body || {};
+    writeJsonFile('profile_photo.json', { photoDataUrl: photoDataUrl || null });
+
+    // If a base64 image data URL was uploaded, also write it to public/assets/profile.jpg
+    if (typeof photoDataUrl === 'string' && photoDataUrl.startsWith('data:image/')) {
+      try {
+        const base64Part = photoDataUrl.split(',')[1];
+        if (base64Part) {
+          const buf = Buffer.from(base64Part, 'base64');
+          const publicAssetPath = path.join(__dirname, 'public', 'assets', 'profile.jpg');
+          const rootAssetPath = path.join(__dirname, 'assets', 'profile.jpg');
+          fs.mkdirSync(path.dirname(publicAssetPath), { recursive: true });
+          fs.writeFileSync(publicAssetPath, buf);
+          fs.mkdirSync(path.dirname(rootAssetPath), { recursive: true });
+          fs.writeFileSync(rootAssetPath, buf);
+        }
+      } catch {
+        // Ignore file write error if read-only container
+      }
+    }
+
+    res.json({ photoDataUrl: photoDataUrl || null });
+  });
+
+  // ==========================================================================
   // API ROUTES FOR EDITABLE CV PERSISTENCE
   // ==========================================================================
   app.get('/api/cv', (_req, res) => {

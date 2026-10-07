@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <rect width="1200" height="720" fill="#07101E" />
+  <rect x="40" y="40" width="1120" height="640" rx="24" fill="#0B172A" stroke="#1E3A5F" stroke-width="2" />
+
+  <text x="80" y="96" font-family="monospace" font-size="14" font-weight="700" fill="#38BDF8">ACADEMIC ROBOTICS &amp; IOT SYSTEM CONCEPT</text>
+  <text x="80" y="138" font-family="sans-serif" font-size="34" font-weight="900" fill="#FFFFFF">Emergency Response Robot — Telemetry &amp; Control Architecture</text>
+
+  <!-- Left Module: Sensors -->
+  <rect x="80" y="185" width="310" height="210" rx="18" fill="#0F213C" stroke="#0284C7" stroke-width="1.5" />
+  <text x="106" y="225" font-family="sans-serif" font-size="18" font-weight="800" fill="#38BDF8">01 · Sensor Array</text>
+  <text x="106" y="260" font-family="sans-serif" font-size="14" fill="#CBD5E1">• Ultrasonic Obstacle Detection</text>
+  <text x="106" y="290" font-family="sans-serif" font-size="14" fill="#CBD5E1">• Gas &amp; Smoke Hazard Sensor</text>
+  <text x="106" y="320" font-family="sans-serif" font-size="14" fill="#CBD5E1">• Thermal &amp; Temperature Probe</text>
+  <text x="106" y="355" font-family="monospace" font-size="12" fill="#34D399">STATUS: TELEMETRY ACTIVE</text>
+
+  <!-- Center Module: Core Controller & Camera -->
+  <rect x="445" y="185" width="310" height="210" rx="18" fill="#0F213C" stroke="#22D3EE" stroke-width="2" />
+  <text x="471" y="225" font-family="sans-serif" font-size="18" font-weight="800" fill="#22D3EE">02 · Camera &amp; Control Unit</text>
+  <text x="471" y="260" font-family="sans-serif" font-size="14" fill="#CBD5E1">• Live Video Feed Module</text>
+  <text x="471" y="290" font-family="sans-serif" font-size="14" fill="#CBD5E1">• Microcontroller Processing</text>
+  <text x="471" y="320" font-family="sans-serif" font-size="14" fill="#CBD5E1">• Wireless RF / Wi-Fi Link</text>
+  <text x="471" y="355" font-family="monospace" font-size="12" fill="#38BDF8">LINK: LOW-LATENCY STREAM</text>
+
+  <!-- Right Module: Locomotion -->
+  <rect x="810" y="185" width="310" height="210" rx="18" fill="#0F213C" stroke="#0284C7" stroke-width="1.5" />
+  <text x="836" y="225" font-family="sans-serif" font-size="18" font-weight="800" fill="#38BDF8">03 · Robotic Movement</text>
+  <text x="836" y="260" font-family="sans-serif" font-size="14" fill="#CBD5E1">• Dual DC Motor Driver Control</text>
+  <text x="836" y="290" font-family="sans-serif" font-size="14" fill="#CBD5E1">• All-Terrain Tracked Chassis</text>
+  <text x="836" y="320" font-family="sans-serif" font-size="14" fill="#CBD5E1">• Remote Navigation Commands</text>
+  <text x="836" y="355" font-family="monospace" font-size="12" fill="#34D399">MODE: REMOTE INSPECTION</text>
+
+  <!-- Bottom Console Summary -->
+  <rect x="80" y="435" width="1040" height="190" rx="18" fill="#081221" stroke="#1E293B" stroke-width="1.5" />
+  <text x="110" y="478" font-family="sans-serif" font-size="17" font-weight="800" fill="#F8FAFC">Academic Concept Overview — Upendra Bahadur Budha (BSc IT, LBEF College)</text>
+  <text x="110" y="514" font-family="sans-serif" font-size="15" fill="#94A3B8">Designed as an academic robotics &amp; IoT concept to explore how unmanned ground vehicles equipped with</text>
+  <text x="110" y="542" font-family="sans-serif" font-size="15" fill="#94A3B8">environmental sensors, live camera feeds, and wireless communication can assist emergency responders.</text>
+  <text x="110" y="584" font-family="monospace" font-size="13" fill="#38BDF8">Sensors → Microcontroller → Wireless Communication → Operator Dashboard &amp; Motor Actuation</text>
+</svg>

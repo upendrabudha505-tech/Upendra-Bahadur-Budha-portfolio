@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { X, Trash2, Check, Edit3 } from 'lucide-react';
-import { AcademicProject } from '../data/portfolioData';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Trash2, Check, Edit3, Upload, ImagePlus, RotateCcw } from 'lucide-react';
+import { AcademicProject, DEFAULT_ACADEMIC_PROJECTS } from '../data/portfolioData';
 
 interface EditProjectModalProps {
   project: AcademicProject | null;
+  currentImageUrl?: string;
   isDark: boolean;
   onClose: () => void;
   onSaveProject: (updated: AcademicProject) => void;
@@ -12,6 +13,7 @@ interface EditProjectModalProps {
 
 export const EditProjectModal: React.FC<EditProjectModalProps> = ({
   project,
+  currentImageUrl,
   isDark,
   onClose,
   onSaveProject,
@@ -24,7 +26,10 @@ export const EditProjectModal: React.FC<EditProjectModalProps> = ({
   const [detailedOverview, setDetailedOverview] = useState('');
   const [objectivesText, setObjectivesText] = useState('');
   const [topicsInput, setTopicsInput] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (project) {
@@ -35,11 +40,29 @@ export const EditProjectModal: React.FC<EditProjectModalProps> = ({
       setDetailedOverview(project.detailedOverview);
       setObjectivesText(project.learningObjectives.join('\n'));
       setTopicsInput(project.topics.join(', '));
+      const defaultProj = DEFAULT_ACADEMIC_PROJECTS.find((d) => d.id === project.id);
+      setImageUrl(currentImageUrl ?? project.imageUrl ?? defaultProj?.imageUrl ?? '');
       setConfirmDelete(false);
     }
-  }, [project]);
+  }, [project, currentImageUrl]);
 
   if (!project) return null;
+
+  const defaultProj = DEFAULT_ACADEMIC_PROJECTS.find((d) => d.id === project.id);
+
+  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setImageUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +90,7 @@ export const EditProjectModal: React.FC<EditProjectModalProps> = ({
           ? learningObjectives
           : ['Academic coursework and conceptual design learning'],
       topics: topics.length > 0 ? topics : ['Academic Project', 'Coursework'],
+      imageUrl: imageUrl.trim(),
     };
 
     onSaveProject(updated);
@@ -119,6 +143,77 @@ export const EditProjectModal: React.FC<EditProjectModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 flex-1">
+          {/* Project Picture Upload & Preview */}
+          <div
+            className={`p-3.5 rounded-xl border space-y-3 ${
+              isDark ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'
+            }`}
+          >
+            <label className="block text-xs font-mono text-blue-500">
+              Project Picture / Screenshot
+            </label>
+            {imageUrl ? (
+              <div className="aspect-[16/9] w-full rounded-lg overflow-hidden border border-slate-800 bg-black">
+                <img
+                  src={imageUrl}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.dataset.triedPublic && imageUrl.startsWith('./assets/')) {
+                      img.dataset.triedPublic = '1';
+                      img.src = imageUrl.replace('./assets/', './public/assets/');
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="py-6 text-center text-xs text-slate-400 border border-dashed border-slate-700 rounded-lg">
+                No project picture selected
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageFileSelect}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 cursor-pointer"
+              >
+                {imageUrl ? <Upload className="w-3.5 h-3.5" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                <span>{imageUrl ? 'Change Picture' : 'Upload Picture'}</span>
+              </button>
+
+              {defaultProj?.imageUrl && imageUrl !== defaultProj.imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setImageUrl(defaultProj.imageUrl)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Restore Default Picture</span>
+                </button>
+              )}
+
+              {imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setImageUrl('')}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg text-rose-400 hover:bg-rose-950/40 cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Remove Picture</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-1">
             <label className="block text-xs font-medium">Project Title *</label>
             <input

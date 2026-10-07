@@ -1,0 +1,114 @@
+{
+  "projects": [
+    {
+      "id": "nepal-invest",
+      "title": "Nepal Invest",
+      "badge": "Academic Project / Concept",
+      "category": "Web & Concept",
+      "shortDescription": "A conceptual investment and IPO management platform created as part of academic/project work.",
+      "detailedOverview": "Nepal Invest is an academic project concept designed to explore how retail investors in Nepal could track IPO applications, portfolio allocations, and market education in a unified user interface. Created strictly as academic coursework to practice system analysis, user interface planning, and information architecture.",
+      "learningObjectives": [
+        "Understanding user workflows for IPO tracking and investment portfolio dashboards",
+        "Practicing system requirement analysis and wireframe structuring for financial concepts",
+        "Designing clear data tables and accessible interface layouts for coursework evaluation"
+      ],
+      "topics": [
+        "System Concept",
+        "UI/UX Planning",
+        "Information Architecture",
+        "Academic Coursework"
+      ],
+      "imageUrl": "./assets/projects/nepal-invest.svg",
+      "suggestedAssetPath": "assets/projects/nepal-invest.svg"
+    },
+    {
+      "id": "clothing-marketplace",
+      "title": "Clothing Marketplace",
+      "badge": "Academic Project / Website Concept",
+      "category": "Web & Concept",
+      "shortDescription": "A conceptual online clothing marketplace exploring modern e-commerce and social-commerce features.",
+      "detailedOverview": "This academic website concept investigates how traditional online apparel catalogs can integrate social-commerce discovery features such as curated lookbooks and community style boards. Developed as a learning exercise in e-commerce user journeys and responsive layout design.",
+      "learningObjectives": [
+        "Structuring multi-category product catalogs and filtering layouts",
+        "Exploring social-commerce interaction patterns in an academic design setting",
+        "Applying responsive grid principles for desktop and mobile viewports"
+      ],
+      "topics": [
+        "E-Commerce Concept",
+        "Social Commerce UI",
+        "Responsive Grid",
+        "Web Design"
+      ],
+      "imageUrl": "./assets/projects/clothing-marketplace.svg",
+      "suggestedAssetPath": "assets/projects/clothing-marketplace.svg"
+    },
+    {
+      "id": "smart-home",
+      "title": "Smart Home",
+      "badge": "Academic Project",
+      "category": "Cloud & Systems",
+      "shortDescription": "An academic project focused on smart-home technology, automation, and design thinking.",
+      "detailedOverview": "An academic coursework project examining how connected household sensors, automated lighting/climate routines, and centralized control interfaces work together. The project emphasizes design thinking, network connectivity concepts, and user-centric automation scenarios.",
+      "learningObjectives": [
+        "Applying design thinking methodology to everyday home automation problems",
+        "Mapping communication flows between smart sensors, local gateways, and cloud dashboards",
+        "Evaluating security and privacy considerations in connected home environments"
+      ],
+      "topics": [
+        "Smart Home Concept",
+        "Automation Logic",
+        "Design Thinking",
+        "Networked Devices"
+      ],
+      "imageUrl": "./assets/projects/smart-home.svg",
+      "suggestedAssetPath": "assets/projects/smart-home.svg"
+    },
+    {
+      "id": "emergency-response-robot",
+      "title": "Emergency Response Robot",
+      "badge": "Academic Project / Robotics Concept",
+      "category": "Hardware & IoT",
+      "shortDescription": "A robotics concept for emergency-response scenarios involving sensors, camera, communication and robotic movement.",
+      "detailedOverview": "An academic robotics concept exploring how an unmanned ground vehicle equipped with environmental sensors, a live camera feed, and wireless communication modules could assist responders in hazardous inspection scenarios.",
+      "learningObjectives": [
+        "Conceptualizing sensor integration for obstacle detection and environmental monitoring",
+        "Studying remote camera telemetry and wireless control links for robotic movement",
+        "Documenting hardware-software interaction diagrams for academic presentation"
+      ],
+      "topics": [
+        "Robotics Concept",
+        "Sensor Systems",
+        "Camera Telemetry",
+        "Wireless Communication"
+      ],
+      "imageUrl": "./assets/projects/emergency-robot.svg",
+      "suggestedAssetPath": "assets/projects/emergency-robot.svg"
+    },
+    {
+      "id": "student-event-website",
+      "title": "Student Event Website",
+      "badge": "Academic Web Development Project",
+      "category": "Web & Concept",
+      "shortDescription": "A student-event website concept created for learning web design, UI design and client-side scripting.",
+      "detailedOverview": "A web development coursework project focused on building an informational portal for college student events, schedules, and registration forms. Created to practice foundational HTML5 semantics, CSS3 styling, and interactive client-side JavaScript validation.",
+      "learningObjectives": [
+        "Writing clean semantic HTML5 markup for event schedules and speaker sections",
+        "Styling responsive page layouts and typography using modern CSS3",
+        "Implementing client-side form validation and interactive DOM updates with JavaScript"
+      ],
+      "topics": [
+        "HTML5",
+        "CSS3",
+        "JavaScript",
+        "UI Design"
+      ],
+      "imageUrl": "./assets/projects/student-event.svg",
+      "suggestedAssetPath": "assets/projects/student-event.svg"
+    }
+  ],
+  "sectionMeta": {
+    "kicker": "04 · Coursework & Concept Explorations",
+    "title": "Academic Projects & Concepts",
+    "subtitle": "These projects represent academic work, concepts, coursework and learning activities. They are not presented as completed commercial products."
+  }
+}

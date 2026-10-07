@@ -7,25 +7,30 @@ import {
   Edit3,
   Check,
   X,
+  RotateCcw,
 } from 'lucide-react';
 import { saveMediaBlob, loadMediaBlob, deleteMediaBlob } from '../utils/mediaStore';
 
 const VIDEO_BLOB_KEY = 'upendra_short_intro_video_blob';
-const VIDEO_META_KEY = 'upendra_short_intro_video_meta_v1';
+const VIDEO_META_KEY = 'upendra_short_intro_video_meta_v2';
+
+export const DEFAULT_SHOWCASE_VIDEO_PATH = './assets/video/upendra-showcase.mp4';
 
 interface VideoMetadata {
   title: string;
   caption: string;
   externalUrl: string;
   fileName: string;
+  hideDefaultVideo?: boolean;
 }
 
 const DEFAULT_META: VideoMetadata = {
   title: 'Short Intro & Video Editing Showcase',
   caption:
-    'A short personal introduction and video editing / content creation sample by Upendra Bahadur Budha.',
-  externalUrl: '',
-  fileName: '',
+    'A 15-second HD personal introduction, APU Wellness Fest 2026 action teaser, and academic project showcase by Upendra Bahadur Budha.',
+  externalUrl: DEFAULT_SHOWCASE_VIDEO_PATH,
+  fileName: 'upendra-showcase.mp4',
+  hideDefaultVideo: false,
 };
 
 interface ShortVideoSectionProps {
@@ -49,7 +54,18 @@ export const ShortVideoSection: React.FC<ShortVideoSectionProps> = ({ isDark, on
   const [meta, setMeta] = useState<VideoMetadata>(() => {
     try {
       const saved = localStorage.getItem(VIDEO_META_KEY);
-      return saved ? { ...DEFAULT_META, ...JSON.parse(saved) } : DEFAULT_META;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_META,
+          ...parsed,
+          externalUrl:
+            parsed.hideDefaultVideo
+              ? parsed.externalUrl || ''
+              : parsed.externalUrl || DEFAULT_SHOWCASE_VIDEO_PATH,
+        };
+      }
+      return DEFAULT_META;
     } catch {
       return DEFAULT_META;
     }
@@ -103,9 +119,14 @@ export const ShortVideoSection: React.FC<ShortVideoSectionProps> = ({ isDark, on
       if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
       const nextObjUrl = URL.createObjectURL(file);
       setVideoObjectUrl(nextObjUrl);
-      const nextMeta = { ...meta, fileName: file.name, externalUrl: '' };
+      const nextMeta: VideoMetadata = {
+        ...meta,
+        fileName: file.name,
+        externalUrl: '',
+        hideDefaultVideo: false,
+      };
       saveMeta(nextMeta);
-      onNotify(`Short video "${file.name}" uploaded and saved.`);
+      onNotify(`Short video "${file.name}" uploaded and active!`);
     } catch {
       onNotify('Could not save video file in browser storage.');
     }
@@ -116,14 +137,27 @@ export const ShortVideoSection: React.FC<ShortVideoSectionProps> = ({ isDark, on
     await deleteMediaBlob(VIDEO_BLOB_KEY);
     if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
     setVideoObjectUrl(null);
-    const nextMeta = { ...meta, fileName: '', externalUrl: '' };
+    const nextMeta: VideoMetadata = {
+      ...meta,
+      fileName: '',
+      externalUrl: '',
+      hideDefaultVideo: true,
+    };
     saveMeta(nextMeta);
     onNotify('Short video removed.');
   };
 
+  const handleRestoreDefaultVideo = async () => {
+    await deleteMediaBlob(VIDEO_BLOB_KEY);
+    if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
+    setVideoObjectUrl(null);
+    saveMeta(DEFAULT_META);
+    onNotify('Restored default 15-second HD Showcase Video.');
+  };
+
   const handleSaveMeta = (e: React.FormEvent) => {
     e.preventDefault();
-    const next = {
+    const next: VideoMetadata = {
       ...meta,
       title: tempTitle.trim() || DEFAULT_META.title,
       caption: tempCaption.trim() || DEFAULT_META.caption,
@@ -135,18 +169,22 @@ export const ShortVideoSection: React.FC<ShortVideoSectionProps> = ({ isDark, on
 
   const handleSaveExternalUrl = (e: React.FormEvent) => {
     e.preventDefault();
-    const next = {
+    const trimmed = tempUrl.trim();
+    const next: VideoMetadata = {
       ...meta,
-      externalUrl: tempUrl.trim(),
+      externalUrl: trimmed,
       fileName: '',
+      hideDefaultVideo: !trimmed,
     };
     saveMeta(next);
     setIsUrlInputOpen(false);
-    onNotify(tempUrl.trim() ? 'Video link saved.' : 'Video link cleared.');
+    onNotify(trimmed ? 'Video link saved.' : 'Video link cleared.');
   };
 
-  const youtubeEmbed = getEmbedUrl(meta.externalUrl);
-  const hasVideo = Boolean(videoObjectUrl || meta.externalUrl);
+  const activeExternalUrl =
+    meta.externalUrl || (!meta.hideDefaultVideo ? DEFAULT_SHOWCASE_VIDEO_PATH : '');
+  const youtubeEmbed = getEmbedUrl(activeExternalUrl);
+  const hasVideo = Boolean(videoObjectUrl || activeExternalUrl);
 
   return (
     <section
@@ -160,7 +198,7 @@ export const ShortVideoSection: React.FC<ShortVideoSectionProps> = ({ isDark, on
           {/* Left Column: Title, Caption, and Easy Video Controls */}
           <div className="lg:col-span-5 space-y-5">
             <div className="text-xs font-mono text-blue-500">
-              Profile Media · Video Editing & Introduction
+              Profile Media · Video Editing & Introduction (0:15 HD Clip)
             </div>
 
             {!isEditingMeta ? (
@@ -240,13 +278,15 @@ export const ShortVideoSection: React.FC<ShortVideoSectionProps> = ({ isDark, on
                 className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors cursor-pointer whitespace-nowrap"
               >
                 <Upload className="w-3.5 h-3.5" />
-                <span>{hasVideo ? 'Change Short Video' : 'Upload Short Video'}</span>
+                <span>{hasVideo ? 'Upload Your Own Video' : 'Upload Short Video'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setTempUrl(meta.externalUrl);
+                  setTempUrl(
+                    activeExternalUrl === DEFAULT_SHOWCASE_VIDEO_PATH ? '' : activeExternalUrl
+                  );
                   setIsUrlInputOpen(!isUrlInputOpen);
                 }}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
@@ -275,6 +315,21 @@ export const ShortVideoSection: React.FC<ShortVideoSectionProps> = ({ isDark, on
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit Caption</span>
               </button>
+
+              {(videoObjectUrl || activeExternalUrl !== DEFAULT_SHOWCASE_VIDEO_PATH) && (
+                <button
+                  type="button"
+                  onClick={handleRestoreDefaultVideo}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
+                    isDark
+                      ? 'border-slate-800 bg-slate-900/60 text-blue-400 hover:text-blue-300'
+                      : 'border-slate-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  }`}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Restore Default Video</span>
+                </button>
+              )}
 
               {hasVideo && (
                 <button
@@ -355,14 +410,25 @@ export const ShortVideoSection: React.FC<ShortVideoSectionProps> = ({ isDark, on
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
-              ) : meta.externalUrl ? (
+              ) : activeExternalUrl ? (
                 <video
-                  key={meta.externalUrl}
-                  src={meta.externalUrl}
+                  key={activeExternalUrl}
+                  src={activeExternalUrl}
+                  poster="./assets/projects/student-event.svg"
                   controls
                   playsInline
+                  preload="metadata"
+                  onError={(e) => {
+                    const vid = e.currentTarget;
+                    if (!vid.dataset.triedPublic) {
+                      vid.dataset.triedPublic = '1';
+                      vid.src = './public/assets/video/upendra-showcase.mp4';
+                    }
+                  }}
                   className="w-full h-full object-contain bg-black"
-                />
+                >
+                  Your browser does not support HTML5 video.
+                </video>
               ) : (
                 <div className="p-8 text-center max-w-md space-y-3">
                   <div className="w-12 h-12 rounded-xl bg-blue-600/15 text-blue-500 flex items-center justify-center mx-auto">
@@ -374,25 +440,35 @@ export const ShortVideoSection: React.FC<ShortVideoSectionProps> = ({ isDark, on
                         isDark ? 'text-white' : 'text-slate-900'
                       }`}
                     >
-                      Short Intro / Showreel Video Coming Soon
+                      Short Intro / Showreel Video
                     </p>
                     <p
                       className={`text-xs leading-relaxed ${
                         isDark ? 'text-slate-400' : 'text-slate-600'
                       }`}
                     >
-                      Upload a short introduction clip or a sample of your video editing & content
-                      creation work directly from your device.
+                      Upload a short introduction clip or click below to restore the 15-second HD
+                      showcase video.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => videoInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors cursor-pointer"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Select Video File (MP4 / WebM / MOV)</span>
-                  </button>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Select Video File</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRestoreDefaultVideo}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Restore Default Video</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -251,9 +251,9 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
       'Designing clear data tables and accessible interface layouts for coursework evaluation',
     ],
     topics: ['System Concept', 'UI/UX Planning', 'Information Architecture', 'Academic Coursework'],
-    // [2] ADD PROJECT IMAGE FOR NEPAL INVEST (e.g., '/assets/projects/nepal-invest.jpg'):
-    imageUrl: '',
-    suggestedAssetPath: 'assets/projects/nepal-invest.jpg',
+    // [2] ADD PROJECT IMAGE FOR NEPAL INVEST:
+    imageUrl: './assets/projects/nepal-invest.svg',
+    suggestedAssetPath: 'assets/projects/nepal-invest.svg',
   },
   {
     id: 'clothing-marketplace',
@@ -270,9 +270,9 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
       'Applying responsive grid principles for desktop and mobile viewports',
     ],
     topics: ['E-Commerce Concept', 'Social Commerce UI', 'Responsive Grid', 'Web Design'],
-    // [2] ADD PROJECT IMAGE FOR CLOTHING MARKETPLACE (e.g., '/assets/projects/clothing-marketplace.jpg'):
-    imageUrl: '',
-    suggestedAssetPath: 'assets/projects/clothing-marketplace.jpg',
+    // [2] ADD PROJECT IMAGE FOR CLOTHING MARKETPLACE:
+    imageUrl: './assets/projects/clothing-marketplace.svg',
+    suggestedAssetPath: 'assets/projects/clothing-marketplace.svg',
   },
   {
     id: 'smart-home',
@@ -289,9 +289,9 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
       'Evaluating security and privacy considerations in connected home environments',
     ],
     topics: ['Smart Home Concept', 'Automation Logic', 'Design Thinking', 'Networked Devices'],
-    // [2] ADD PROJECT IMAGE FOR SMART HOME (e.g., '/assets/projects/smart-home.jpg'):
-    imageUrl: '',
-    suggestedAssetPath: 'assets/projects/smart-home.jpg',
+    // [2] ADD PROJECT IMAGE FOR SMART HOME:
+    imageUrl: './assets/projects/smart-home.svg',
+    suggestedAssetPath: 'assets/projects/smart-home.svg',
   },
   {
     id: 'emergency-response-robot',
@@ -308,9 +308,9 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
       'Documenting hardware-software interaction diagrams for academic presentation',
     ],
     topics: ['Robotics Concept', 'Sensor Systems', 'Camera Telemetry', 'Wireless Communication'],
-    // [2] ADD PROJECT IMAGE FOR EMERGENCY RESPONSE ROBOT (e.g., '/assets/projects/emergency-robot.jpg'):
-    imageUrl: '',
-    suggestedAssetPath: 'assets/projects/emergency-robot.jpg',
+    // [2] ADD PROJECT IMAGE FOR EMERGENCY RESPONSE ROBOT:
+    imageUrl: './assets/projects/emergency-robot.svg',
+    suggestedAssetPath: 'assets/projects/emergency-robot.svg',
   },
   {
     id: 'student-event-website',
@@ -327,9 +327,9 @@ export const DEFAULT_ACADEMIC_PROJECTS: AcademicProject[] = [
       'Implementing client-side form validation and interactive DOM updates with JavaScript',
     ],
     topics: ['HTML5', 'CSS3', 'JavaScript', 'UI Design'],
-    // [2] ADD PROJECT IMAGE FOR STUDENT EVENT WEBSITE (e.g., '/assets/projects/student-event.jpg'):
-    imageUrl: '',
-    suggestedAssetPath: 'assets/projects/student-event.jpg',
+    // [2] ADD PROJECT IMAGE FOR STUDENT EVENT WEBSITE:
+    imageUrl: './assets/projects/student-event.svg',
+    suggestedAssetPath: 'assets/projects/student-event.svg',
   },
 ];
 
