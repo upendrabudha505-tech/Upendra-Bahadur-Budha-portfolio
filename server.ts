@@ -4,6 +4,7 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
+import { GoogleGenAI } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -104,11 +105,24 @@ async function startServer() {
   });
 
   app.post('/api/messages', (req, res) => {
-    const { fullName, email, subject, message } = req.body || {};
+    const { fullName, email, subject, message, website } = req.body || {};
+
+    // Honeypot spam protection: if hidden 'website' field is filled by a bot, silently accept
+    if (website && String(website).trim() !== '') {
+      res.status(200).json({ message: null, messages: readJsonFile('messages.json', []) });
+      return;
+    }
+
     if (!fullName || !email || !subject || !message) {
       res
         .status(400)
         .json({ error: 'All fields (fullName, email, subject, message) are required.' });
+      return;
+    }
+
+    const emailStr = String(email).trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
+      res.status(400).json({ error: 'Please provide a valid email address.' });
       return;
     }
 
@@ -419,6 +433,125 @@ async function startServer() {
     };
     writeJsonFile('short_video.json', nextRecord);
     res.json(nextRecord);
+  });
+
+  // ==========================================================================
+  // API ROUTES FOR CERTIFICATES, BLOG & PRIVACY-FRIENDLY ANALYTICS
+  // ==========================================================================
+  app.get('/api/certificates', (_req, res) => {
+    const certificates = readJsonFile('certificates.json', []);
+    res.json({ certificates: Array.isArray(certificates) ? certificates : [] });
+  });
+
+  app.put('/api/certificates', (req, res) => {
+    const { certificates } = req.body || {};
+    const valid = Array.isArray(certificates) ? certificates : [];
+    writeJsonFile('certificates.json', valid);
+    res.json({ certificates: valid });
+  });
+
+  app.get('/api/blog', (_req, res) => {
+    const articles = readJsonFile('blog_articles.json', null);
+    res.json({ articles: Array.isArray(articles) ? articles : null });
+  });
+
+  app.put('/api/blog', (req, res) => {
+    const { articles } = req.body || {};
+    const valid = Array.isArray(articles) ? articles : [];
+    writeJsonFile('blog_articles.json', valid);
+    res.json({ articles: valid });
+  });
+
+  app.post('/api/analytics/view', (_req, res) => {
+    const stats = readJsonFile('analytics.json', { views: 124 });
+    const nextViews = (typeof stats?.views === 'number' ? stats.views : 124) + 1;
+    writeJsonFile('analytics.json', { views: nextViews, updatedAt: new Date().toISOString() });
+    res.json({ views: nextViews });
+  });
+
+  app.get('/api/analytics', (_req, res) => {
+    const stats = readJsonFile('analytics.json', { views: 124 });
+    res.json({ views: typeof stats?.views === 'number' ? stats.views : 124 });
+  });
+
+  // ==========================================================================
+  // SERVER-SIDE AI PORTFOLIO ASSISTANT (/api/chat) WITH DEMO FALLBACK
+  // ==========================================================================
+  app.post('/api/chat', async (req, res) => {
+    const userMessage = String(req.body?.message || '').trim();
+    if (!userMessage) {
+      res.status(400).json({ error: 'Message is required.' });
+      return;
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey && apiKey.trim() !== '') {
+      try {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: userMessage,
+          config: {
+            systemInstruction: `You are the official AI Portfolio Assistant for Upendra Bahadur Budha.
+Answer concisely, politely, and truthfully based ONLY on these verified facts:
+- Name: Upendra Bahadur Budha
+- Education: BSc IT student specializing in Cloud Computing at LBEF College (Lord Buddha Education Foundation), Nepal.
+- Career Goal: Aspiring IT professional and technology entrepreneur.
+- Core Skills & Interests: Cloud Computing, Cisco Networking, Cybersecurity, Web Development (HTML5, CSS3, JavaScript), Video Editing, and Content Creation.
+- Academic Projects & Coursework Concepts (not commercial products):
+  1. Nepal Invest (Conceptual IPO & investment tracking platform)
+  2. Clothing Marketplace (E-commerce & social-commerce website concept)
+  3. Smart Home (IoT & home automation coursework concept)
+  4. Emergency Response Robot (Robotics sensor & camera telemetry concept)
+  5. Student Event Website (College event portal coursework using HTML, CSS, JS)
+- Official Links & Contact:
+  - GitHub: https://github.com/upendrabudha505-tech (@upendrabudha505-tech)
+  - LinkedIn: https://www.linkedin.com/in/upendra-budha-6b9240329
+  - Credly: https://www.credly.com/users/upendra-bahadur-budha
+  - Instagram: https://www.instagram.com/upendrabudha505/
+  - Facebook: https://www.facebook.com/bu.d.ha.776337
+  - Email: upendrabudha505@gmail.com
+  - Phone: 9701269514
+Never invent fake work experience, fake certificates, or fake commercial projects.`,
+          },
+        });
+
+        const replyText = response.text?.trim();
+        if (replyText) {
+          res.json({ reply: replyText, mode: 'ai' });
+          return;
+        }
+      } catch (err) {
+        console.warn('Gemini API call failed, falling back to demo mode:', err);
+      }
+    }
+
+    // Working Demo Mode fallback when no API key is configured
+    const q = userMessage.toLowerCase();
+    let demoReply =
+      'Upendra Bahadur Budha is a BSc IT student specializing in Cloud Computing at LBEF College, Nepal, with a goal of becoming an IT professional and entrepreneur. You can ask me about his skills, academic projects, GitHub (github.com/upendrabudha505-tech), or contact details!';
+
+    if (q.includes('skill') || q.includes('cloud') || q.includes('network') || q.includes('cyber')) {
+      demoReply =
+        'Upendra focuses on Cloud Computing (his BSc IT specialization), Cisco Networking, Cybersecurity fundamentals, Web Development (HTML5, CSS3, JavaScript), Video Editing, and Content Creation.';
+    } else if (q.includes('project') || q.includes('nepal invest') || q.includes('smart home') || q.includes('robot')) {
+      demoReply =
+        'Upendra’s academic projects and coursework concepts include:\n• Nepal Invest (IPO & investment concept)\n• Clothing Marketplace (E-commerce concept)\n• Smart Home (Automation & IoT concept)\n• Emergency Response Robot (Robotics telemetry concept)\n• Student Event Website (HTML/CSS/JS coursework).';
+    } else if (q.includes('github') || q.includes('code') || q.includes('repo')) {
+      demoReply =
+        'Upendra’s official GitHub profile is https://github.com/upendrabudha505-tech (@upendrabudha505-tech). You can also explore the live GitHub Activity section on this page.';
+    } else if (q.includes('instagram') || q.includes('linkedin') || q.includes('social') || q.includes('credly')) {
+      demoReply =
+        'Connect with Upendra on:\n• GitHub: https://github.com/upendrabudha505-tech\n• LinkedIn: https://www.linkedin.com/in/upendra-budha-6b9240329\n• Instagram: https://www.instagram.com/upendrabudha505/\n• Credly: https://www.credly.com/users/upendra-bahadur-budha';
+    } else if (q.includes('contact') || q.includes('email') || q.includes('phone') || q.includes('hire')) {
+      demoReply =
+        'You can reach Upendra Bahadur Budha at:\n• Email: upendrabudha505@gmail.com\n• Phone: 9701269514\n• Or by submitting a message in the Contact Me section below.';
+    } else if (q.includes('education') || q.includes('college') || q.includes('lbef') || q.includes('study')) {
+      demoReply =
+        'Upendra is pursuing his Bachelor of Science in Information Technology (BSc IT) specializing in Cloud Computing at LBEF College (Lord Buddha Education Foundation) in Nepal.';
+    }
+
+    res.json({ reply: demoReply, mode: 'demo' });
   });
 
   // ==========================================================================

@@ -41,6 +41,10 @@ import {
   Edit3,
   Inbox,
   Mail,
+  Search,
+  ArrowUp,
+  ShieldCheck,
+  Globe,
 } from 'lucide-react';
 import {
   DEFAULT_PROFILE_IMAGE,
@@ -51,8 +55,11 @@ import {
   DEFAULT_ACADEMIC_PROJECTS,
   DEFAULT_PROJECT_IMAGES_BY_ID,
   EARNED_CERTIFICATES,
+  DEFAULT_BLOG_ARTICLES,
+  TRANSLATIONS,
   AcademicProject,
   CertificateItem,
+  BlogArticle,
 } from './data/portfolioData';
 import {
   triggerCvDownload,
@@ -66,6 +73,11 @@ import { CvEditorModal } from './components/CvEditorModal';
 import { A4CvSheet } from './components/A4CvSheet';
 import { MessagesInboxModal, VisitorMessage } from './components/MessagesInboxModal';
 import { EditProjectModal } from './components/EditProjectModal';
+import { InteractiveTerminal } from './components/InteractiveTerminal';
+import { GitHubActivitySection } from './components/GitHubActivitySection';
+import { TechBlogSection } from './components/TechBlogSection';
+import { AiPortfolioAssistant } from './components/AiPortfolioAssistant';
+import { AdminDashboardModal } from './components/AdminDashboardModal';
 
 const STORAGE_KEYS = {
   THEME: 'upendra_portfolio_theme_v1',
@@ -78,6 +90,8 @@ const STORAGE_KEYS = {
   CUSTOM_CV_NAME: 'upendra_portfolio_custom_cv_name_v1',
   EDITABLE_CV_JSON: 'upendra_portfolio_editable_cv_json_v1',
   CONTACT_MESSAGES: 'upendra_portfolio_messages_v1',
+  BLOG_ARTICLES: 'upendra_portfolio_blog_articles_v1',
+  LANGUAGE: 'upendra_portfolio_lang_v1',
 };
 
 export default function App() {
@@ -86,6 +100,18 @@ export default function App() {
     const saved = localStorage.getItem(STORAGE_KEYS.THEME);
     return saved ? saved === 'dark' : true;
   });
+
+  // Language state (English / Nepali toggle)
+  const [lang, setLang] = useState<'en' | 'ne'>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.LANGUAGE);
+    return saved === 'ne' ? 'ne' : 'en';
+  });
+  const t = TRANSLATIONS[lang];
+
+  // Back to top visibility & Admin Dashboard modal state
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [visitorViews, setVisitorViews] = useState<number>(128);
 
   // Mobile navigation menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -167,11 +193,22 @@ export default function App() {
   });
   const [isEditingSectionMeta, setIsEditingSectionMeta] = useState(false);
 
-  // Active project filter, detail modal, edit modal & add modal state
+  // Active project filter, search query, detail modal, edit modal & add modal state
   const [projectFilter, setProjectFilter] = useState<string>('All');
+  const [projectSearch, setProjectSearch] = useState<string>('');
   const [selectedProject, setSelectedProject] = useState<AcademicProject | null>(null);
   const [editingProject, setEditingProject] = useState<AcademicProject | null>(null);
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
+
+  // Tech Blog Articles state
+  const [blogArticles, setBlogArticles] = useState<BlogArticle[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.BLOG_ARTICLES);
+      return saved ? JSON.parse(saved) : DEFAULT_BLOG_ARTICLES;
+    } catch {
+      return DEFAULT_BLOG_ARTICLES;
+    }
+  });
 
   // Active skill domain filter
   const [skillFilter, setSkillFilter] = useState<string>('All');
@@ -210,6 +247,7 @@ export default function App() {
     email: '',
     subject: '',
     message: '',
+    website: '', // Honeypot field for spam protection
   });
   const [contactStatus, setContactStatus] = useState<'idle' | 'submitted'>('idle');
   const [savedMessages, setSavedMessages] = useState<VisitorMessage[]>(() => {
@@ -253,6 +291,18 @@ export default function App() {
     localStorage.setItem(STORAGE_KEYS.THEME, isDark ? 'dark' : 'light');
   }, [isDark]);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.LANGUAGE, lang);
+  }, [lang]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setShowBackToTop(window.scrollY > 500);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   // Close modals on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -263,6 +313,7 @@ export default function App() {
         setIsGuideOpen(false);
         setIsCvEditorOpen(false);
         setIsInboxOpen(false);
+        setIsAdminOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -408,8 +459,110 @@ export default function App() {
       .catch(() => {});
 
     const interval = setInterval(fetchMessagesFromServer, 15000);
+
+    // Fetch certificates, blog articles, and record privacy-friendly page view
+    fetch('/api/certificates')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (Array.isArray(data?.certificates) && data.certificates.length > 0) {
+          setCustomCertificates(data.certificates);
+          try {
+            localStorage.setItem(
+              STORAGE_KEYS.CUSTOM_CERTIFICATES,
+              JSON.stringify(data.certificates)
+            );
+          } catch {}
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/blog')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (Array.isArray(data?.articles) && data.articles.length > 0) {
+          setBlogArticles(data.articles);
+          try {
+            localStorage.setItem(STORAGE_KEYS.BLOG_ARTICLES, JSON.stringify(data.articles));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/analytics/view', { method: 'POST' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (typeof data?.views === 'number') {
+          setVisitorViews(data.views);
+        }
+      })
+      .catch(() => {});
+
     return () => clearInterval(interval);
   }, []);
+
+  const handleAddCertificate = (certInput: Omit<CertificateItem, 'id'>) => {
+    const created: CertificateItem = {
+      id: `cert-${Date.now()}`,
+      ...certInput,
+    };
+    const next = [...customCertificates, created];
+    setCustomCertificates(next);
+    try {
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_CERTIFICATES, JSON.stringify(next));
+    } catch {}
+    fetch('/api/certificates', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ certificates: next }),
+    }).catch(() => {});
+    showToast(`Added certificate "${created.title}".`);
+  };
+
+  const handleDeleteCertificate = (id: string) => {
+    const next = customCertificates.filter((c) => c.id !== id);
+    setCustomCertificates(next);
+    try {
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_CERTIFICATES, JSON.stringify(next));
+    } catch {}
+    fetch('/api/certificates', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ certificates: next }),
+    }).catch(() => {});
+    showToast('Certificate removed.');
+  };
+
+  const handleAddBlogArticle = (articleInput: Omit<BlogArticle, 'id'>) => {
+    const created: BlogArticle = {
+      id: `blog-${Date.now()}`,
+      ...articleInput,
+    };
+    const next = [created, ...blogArticles];
+    setBlogArticles(next);
+    try {
+      localStorage.setItem(STORAGE_KEYS.BLOG_ARTICLES, JSON.stringify(next));
+    } catch {}
+    fetch('/api/blog', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ articles: next }),
+    }).catch(() => {});
+    showToast(`Published blog article "${created.title}".`);
+  };
+
+  const handleDeleteBlogArticle = (id: string) => {
+    const next = blogArticles.filter((a) => a.id !== id);
+    setBlogArticles(next);
+    try {
+      localStorage.setItem(STORAGE_KEYS.BLOG_ARTICLES, JSON.stringify(next));
+    } catch {}
+    fetch('/api/blog', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ articles: next }),
+    }).catch(() => {});
+    showToast('Blog article removed.');
+  };
 
   const handleSaveEditableCv = async (updated: EditableCvData) => {
     setEditableCvData(updated);
@@ -719,6 +872,7 @@ export default function App() {
       email: contactForm.email.trim(),
       subject: contactForm.subject.trim(),
       message: contactForm.message.trim(),
+      website: contactForm.website,
     };
 
     try {
@@ -759,7 +913,7 @@ export default function App() {
     }
 
     setContactStatus('submitted');
-    setContactForm({ fullName: '', email: '', subject: '', message: '' });
+    setContactForm({ fullName: '', email: '', subject: '', message: '', website: '' });
     showToast('Message delivered to Upendra’s portfolio inbox!');
   };
 
@@ -801,10 +955,15 @@ export default function App() {
   };
 
   const allProjects: AcademicProject[] = projectsList;
-  const filteredProjects =
-    projectFilter === 'All'
-      ? allProjects
-      : allProjects.filter((p) => p.category === projectFilter);
+  const filteredProjects = allProjects.filter((p) => {
+    const matchesCategory = projectFilter === 'All' || p.category === projectFilter;
+    const q = projectSearch.trim().toLowerCase();
+    if (!q) return matchesCategory;
+    const inTitle = p.title.toLowerCase().includes(q);
+    const inDesc = p.shortDescription.toLowerCase().includes(q);
+    const inTopics = p.topics.some((topic) => topic.toLowerCase().includes(q));
+    return matchesCategory && (inTitle || inDesc || inTopics);
+  });
 
   const filteredSkillGroups =
     skillFilter === 'All'
@@ -907,21 +1066,22 @@ export default function App() {
           {/* Zone 2: Clean typography navigation links */}
           <nav
             aria-label="Primary Navigation"
-            className="hidden lg:flex items-center gap-6 text-sm font-medium"
+            className="hidden lg:flex items-center gap-5 text-sm font-medium"
           >
             {[
-              { label: 'Home', href: '#home' },
-              { label: 'About', href: '#about' },
-              { label: 'Skills', href: '#skills' },
-              { label: 'Academic Work', href: '#academic-work' },
-              { label: 'Education', href: '#education' },
-              { label: 'Credentials', href: '#credentials' },
-              { label: 'Contact', href: '#contact' },
+              { label: t.navHome, href: '#home' },
+              { label: t.navAbout, href: '#about' },
+              { label: t.navSkills, href: '#skills' },
+              { label: t.navProjects, href: '#academic-work' },
+              { label: t.navTerminal, href: '#terminal' },
+              { label: t.navGithub, href: '#github' },
+              { label: t.navBlog, href: '#blog' },
+              { label: t.navContact, href: '#contact' },
             ].map((item, index) => (
               <a
                 key={item.href}
                 href={item.href}
-                className={`${index >= 5 ? 'hidden xl:inline-block' : ''} whitespace-nowrap shrink-0 py-1 border-b-2 border-transparent transition-colors duration-150 ${
+                className={`${index >= 6 ? 'hidden xl:inline-block' : ''} whitespace-nowrap shrink-0 py-1 border-b-2 border-transparent transition-colors duration-150 ${
                   isDark
                     ? 'text-slate-300 hover:text-white hover:border-blue-500'
                     : 'text-slate-600 hover:text-slate-900 hover:border-blue-600'
@@ -932,13 +1092,27 @@ export default function App() {
             ))}
           </nav>
 
-          {/* Zone 3: Primary Actions (Theme Toggle + Mobile Trigger) */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Zone 3: Primary Actions (Language Toggle + Theme Toggle + Admin + Mobile Trigger) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setLang(lang === 'en' ? 'ne' : 'en')}
+              title="Toggle English / Nepali language"
+              className={`h-10 px-2.5 inline-flex items-center gap-1.5 rounded-lg border text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                isDark
+                  ? 'border-slate-800 bg-slate-900/70 text-slate-300 hover:text-white hover:border-slate-700'
+                  : 'border-slate-200 bg-slate-100/80 text-slate-700 hover:text-slate-950 hover:border-slate-300'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5 text-blue-500" />
+              <span>{lang === 'en' ? 'EN · ने' : 'ने · EN'}</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setIsDark(!isDark)}
               aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              className={`h-10 w-10 inline-flex items-center justify-center rounded-lg border transition-colors duration-150 ${
+              className={`h-10 w-10 inline-flex items-center justify-center rounded-lg border transition-colors duration-150 cursor-pointer ${
                 isDark
                   ? 'border-slate-800 bg-slate-900/70 text-slate-300 hover:text-white hover:border-slate-700'
                   : 'border-slate-200 bg-slate-100/80 text-slate-700 hover:text-slate-950 hover:border-slate-300'
@@ -972,13 +1146,15 @@ export default function App() {
           >
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'Home', href: '#home' },
-                { label: 'About', href: '#about' },
-                { label: 'Skills', href: '#skills' },
-                { label: 'Academic Work', href: '#academic-work' },
-                { label: 'Education', href: '#education' },
-                { label: 'Credentials', href: '#credentials' },
-                { label: 'Contact', href: '#contact' },
+                { label: t.navHome, href: '#home' },
+                { label: t.navAbout, href: '#about' },
+                { label: t.navSkills, href: '#skills' },
+                { label: t.navProjects, href: '#academic-work' },
+                { label: t.navTerminal, href: '#terminal' },
+                { label: t.navGithub, href: '#github' },
+                { label: t.navCredentials, href: '#credentials' },
+                { label: t.navBlog, href: '#blog' },
+                { label: t.navContact, href: '#contact' },
               ].map((item) => (
                 <a
                   key={item.href}
@@ -1029,14 +1205,14 @@ export default function App() {
                       isDark ? 'text-white' : 'text-slate-950'
                     }`}
                   >
-                    {PERSONAL_INFO.heroGreeting}
+                    {t.heroGreeting}
                   </h1>
                   <p
                     className={`text-lg sm:text-xl font-medium ${
                       isDark ? 'text-slate-300' : 'text-slate-700'
                     }`}
                   >
-                    {PERSONAL_INFO.roleTitle}{' '}
+                    {t.heroRole}{' '}
                     <span className={isDark ? 'text-slate-600' : 'text-slate-400'}>·</span>{' '}
                     <span className={isDark ? 'text-blue-400' : 'text-blue-600'}>
                       {PERSONAL_INFO.college}
@@ -1058,22 +1234,9 @@ export default function App() {
                     href="#academic-work"
                     className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors duration-150 whitespace-nowrap shrink-0 shadow-sm"
                   >
-                    <span>View Academic Work</span>
+                    <span>{t.heroViewProjects}</span>
                     <ArrowUpRight className="w-4 h-4" />
                   </a>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsCvEditorOpen(true)}
-                    className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer ${
-                      isDark
-                        ? 'border-slate-800 bg-slate-900/50 text-blue-400 hover:bg-slate-800 hover:text-blue-300'
-                        : 'border-slate-200 bg-blue-50/70 text-blue-700 hover:bg-blue-100'
-                    }`}
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    <span>Edit CV</span>
-                  </button>
 
                   <a
                     href="#contact"
@@ -1083,17 +1246,30 @@ export default function App() {
                         : 'border-slate-200 bg-transparent text-slate-700 hover:text-slate-950 hover:border-slate-300'
                     }`}
                   >
-                    <span>Contact Me</span>
+                    <span>{t.heroContactMe}</span>
                   </a>
                 </div>
 
-                {/* Social & Verified Profile Links (LinkedIn, Credly, Facebook, Instagram, Email) */}
+                {/* Social & Verified Profile Links (GitHub, LinkedIn, Credly, Facebook, Instagram, Email) */}
                 <div
                   className={`pt-4 border-t flex flex-wrap items-center gap-5 text-sm ${
                     isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-200 text-slate-600'
                   }`}
                 >
                   <span className="text-xs font-mono text-slate-500">Profiles:</span>
+                  {/* GITHUB */}
+                  <a
+                    href={SOCIAL_LINKS.githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex items-center gap-1.5 font-medium transition-colors whitespace-nowrap ${
+                      isDark ? 'text-slate-200 hover:text-blue-400' : 'text-slate-800 hover:text-blue-600'
+                    }`}
+                  >
+                    <span>GitHub</span>
+                    <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                  </a>
+
                   {/* [4] UPDATE LINKEDIN */}
                   <a
                     href={SOCIAL_LINKS.linkedinUrl}
@@ -1687,8 +1863,24 @@ export default function App() {
                 )}
               </div>
 
-              {/* Filter Tabs + Add Academic Project + Reset Default Button */}
+              {/* Filter Tabs + Search Input + Add Academic Project + Reset Default Button */}
               <div className="flex flex-wrap items-center gap-2.5">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="search"
+                    value={projectSearch}
+                    onChange={(e) => setProjectSearch(e.target.value)}
+                    placeholder="Search projects or topics..."
+                    aria-label="Search projects"
+                    className={`pl-8 pr-3 py-1.5 text-xs rounded-xl border outline-none w-48 sm:w-56 transition-colors ${
+                      isDark
+                        ? 'bg-slate-900/80 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-blue-500'
+                        : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-600'
+                    }`}
+                  />
+                </div>
+
                 <div
                   className={`flex flex-wrap items-center gap-1 p-1 rounded-xl border ${
                     isDark
@@ -1827,63 +2019,6 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* [2] PROJECT IMAGE MANAGEMENT BAR ON EVERY CARD */}
-                      <div
-                        className={`px-4 py-2.5 border-b flex flex-wrap items-center gap-2 text-xs ${
-                          isDark
-                            ? 'bg-slate-950/60 border-slate-800/80'
-                            : 'bg-slate-50 border-slate-200/80'
-                        }`}
-                      >
-                        <input
-                          id={fileInputId}
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleProjectImageUpload(project.id, e)}
-                          className="hidden"
-                        />
-
-                        {!currentImg ? (
-                          <label
-                            htmlFor={fileInputId}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors whitespace-nowrap ${
-                              isDark
-                                ? 'bg-blue-600/15 text-blue-400 hover:bg-blue-600/25'
-                                : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                            }`}
-                          >
-                            <ImagePlus className="w-3.5 h-3.5" />
-                            <span>Add Project Image</span>
-                          </label>
-                        ) : (
-                          <>
-                            <label
-                              htmlFor={fileInputId}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors whitespace-nowrap ${
-                                isDark
-                                  ? 'bg-slate-800 text-slate-200 hover:bg-slate-700'
-                                  : 'bg-slate-200 text-slate-800 hover:bg-slate-300'
-                              }`}
-                            >
-                              <Upload className="w-3 h-3" />
-                              <span>Change Image</span>
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveProjectImage(project.id)}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors whitespace-nowrap ${
-                                isDark
-                                  ? 'text-rose-400 hover:bg-rose-950/40'
-                                  : 'text-rose-600 hover:bg-rose-50'
-                              }`}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>Remove Image</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
-
                       {/* Card Body */}
                       <div className="p-6 space-y-3">
                         {/* Unboxed 1-line text kicker for Academic Project / Concept label */}
@@ -1910,61 +2045,23 @@ export default function App() {
                         >
                           {project.shortDescription}
                         </p>
-                      </div>
-                    </div>
 
-                    {/* Card Footer: Unboxed topics + View Details button */}
-                    <div className="px-6 pb-6 pt-2 space-y-4">
-                      <div
-                        className={`text-xs font-mono pt-3 border-t ${
-                          isDark
-                            ? 'border-slate-800/80 text-slate-400'
-                            : 'border-slate-100 text-slate-500'
-                        }`}
-                      >
-                        {project.topics.join(' · ')}
-                      </div>
-
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedProject(project)}
-                          className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
+                        {/* Clean unboxed technology topics + Case Study action */}
+                        <div
+                          className={`pt-3 border-t flex items-center justify-between gap-3 text-xs font-mono ${
                             isDark
-                              ? 'border-slate-700 bg-slate-800/80 text-white hover:bg-blue-600 hover:border-blue-600'
-                              : 'border-slate-300 bg-slate-100 text-slate-900 hover:bg-blue-600 hover:text-white hover:border-blue-600'
+                              ? 'border-slate-800/80 text-slate-400'
+                              : 'border-slate-100 text-slate-500'
                           }`}
                         >
-                          <span>View Details</span>
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                        </button>
-
-                        <div className="flex items-center gap-1.5">
+                          <span className="truncate">{project.topics.slice(0, 3).join(' · ')}</span>
                           <button
                             type="button"
-                            onClick={() => setEditingProject(project)}
-                            className={`inline-flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
-                              isDark
-                                ? 'border-slate-800 bg-slate-900 text-blue-400 hover:bg-slate-800 hover:text-blue-300'
-                                : 'border-slate-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                            }`}
+                            onClick={() => setSelectedProject(project)}
+                            className="inline-flex items-center gap-1 text-blue-500 hover:text-blue-400 font-semibold shrink-0 cursor-pointer"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteAcademicProject(project.id)}
-                            title="Delete this academic project"
-                            className={`inline-flex items-center gap-1 px-2.5 py-2 text-xs font-medium rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
-                              isDark
-                                ? 'border-rose-900/50 bg-rose-950/30 text-rose-400 hover:bg-rose-900/50'
-                                : 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
-                            }`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Delete</span>
+                            <span>Case Study</span>
+                            <ArrowUpRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -1975,6 +2072,20 @@ export default function App() {
             </div>
           </div>
         </section>
+
+        {/* ===================================================================
+            INTERACTIVE DEVELOPER TERMINAL SECTION
+            =================================================================== */}
+        <InteractiveTerminal
+          isDark={isDark}
+          projects={allProjects}
+          headingText={t.terminalHeading}
+        />
+
+        {/* ===================================================================
+            GITHUB ACTIVITY & REPOSITORIES SECTION
+            =================================================================== */}
+        <GitHubActivitySection isDark={isDark} headingText={t.githubHeading} />
 
         {/* ===================================================================
             EDUCATION & CREDENTIALS SECTION
@@ -2138,12 +2249,34 @@ export default function App() {
                       <span>View Credly Profile</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsAdminOpen(true)}
+                      className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
+                        isDark
+                          ? 'border-slate-800 bg-slate-900 text-slate-300 hover:text-white'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:text-slate-950'
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Earned Certificate</span>
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
+
+        {/* ===================================================================
+            TECH BLOG & LEARNING NOTES SECTION
+            =================================================================== */}
+        <TechBlogSection
+          isDark={isDark}
+          articles={blogArticles}
+          headingText={t.blogHeading}
+        />
 
         {/* ===================================================================
             RESUME / CV SECTION
@@ -2337,6 +2470,32 @@ export default function App() {
                         </>
                       )}
                     </button>
+                  </div>
+
+                  {/* GitHub */}
+                  <div className="p-5 flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-xs font-mono text-slate-500">GitHub</div>
+                      <a
+                        href={SOCIAL_LINKS.githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-sm font-medium mt-0.5 block truncate hover:text-blue-500 transition-colors ${
+                          isDark ? 'text-slate-200' : 'text-slate-800'
+                        }`}
+                      >
+                        {SOCIAL_LINKS.githubDisplay}
+                      </a>
+                    </div>
+                    <a
+                      href={SOCIAL_LINKS.githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Open GitHub Profile"
+                      className="p-2 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors shrink-0"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
                   </div>
 
                   {/* LinkedIn */}
@@ -2594,6 +2753,21 @@ export default function App() {
                     />
                   </div>
 
+                  {/* Hidden Honeypot Input for Spam Protection */}
+                  <div className="hidden" aria-hidden="true">
+                    <label htmlFor="contact-website-hp">Website</label>
+                    <input
+                      id="contact-website-hp"
+                      type="text"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={contactForm.website}
+                      onChange={(e) =>
+                        setContactForm({ ...contactForm, website: e.target.value })
+                      }
+                    />
+                  </div>
+
                   <div className="pt-1 flex flex-wrap items-center justify-between gap-4">
                     <button
                       type="submit"
@@ -2646,6 +2820,16 @@ export default function App() {
           <p>© 2026 Upendra Bahadur Budha. All Rights Reserved.</p>
 
           <div className="flex flex-wrap items-center gap-6">
+            <a
+              href={SOCIAL_LINKS.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`font-medium transition-colors ${
+                isDark ? 'hover:text-white' : 'hover:text-slate-950'
+              }`}
+            >
+              GitHub
+            </a>
             <a
               href={SOCIAL_LINKS.linkedinUrl}
               target="_blank"
@@ -2719,6 +2903,16 @@ export default function App() {
             </button>
             <button
               type="button"
+              onClick={() => setIsAdminOpen(true)}
+              className={`inline-flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer ${
+                isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+              <span>Admin</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setIsGuideOpen(true)}
               className={`inline-flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer ${
                 isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'
@@ -2730,6 +2924,60 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Hidden Profile File Input for Admin Dashboard Profile Portrait Upload */}
+      <input
+        ref={profileFileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleProfilePhotoUpload}
+        className="hidden"
+      />
+
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Scroll back to top"
+          className={`fixed bottom-6 left-6 z-40 h-10 w-10 rounded-full border flex items-center justify-center shadow-lg transition-all cursor-pointer ${
+            isDark
+              ? 'bg-slate-900/90 border-slate-700 text-slate-200 hover:bg-blue-600 hover:text-white hover:border-blue-500'
+              : 'bg-white/90 border-slate-300 text-slate-800 hover:bg-blue-600 hover:text-white'
+          }`}
+        >
+          <ArrowUp className="w-4 h-4" />
+        </button>
+      )}
+
+      {/* Floating AI Portfolio Assistant */}
+      <AiPortfolioAssistant isDark={isDark} />
+
+      {/* Admin & Content Management Modal */}
+      <AdminDashboardModal
+        isOpen={isAdminOpen}
+        isDark={isDark}
+        onClose={() => setIsAdminOpen(false)}
+        projects={allProjects}
+        onOpenAddProject={() => setIsAddProjectModalOpen(true)}
+        onEditProject={(proj) => setEditingProject(proj)}
+        onDeleteProject={handleDeleteAcademicProject}
+        certificates={allCertificates}
+        onAddCertificate={handleAddCertificate}
+        onDeleteCertificate={handleDeleteCertificate}
+        blogArticles={blogArticles}
+        onAddBlogArticle={handleAddBlogArticle}
+        onDeleteBlogArticle={handleDeleteBlogArticle}
+        messagesCount={savedMessages.length}
+        unreadMessagesCount={savedMessages.filter((m) => !m.read).length}
+        onOpenInbox={() => {
+          fetchMessagesFromServer();
+          setIsInboxOpen(true);
+        }}
+        onTriggerProfilePhotoUpload={() => profileFileInputRef.current?.click()}
+        onResetProfilePhoto={handleResetProfilePhoto}
+        visitorViews={visitorViews}
+      />
 
       {/* =====================================================================
           MODAL: INTERACTIVE CV EDITOR & LIVE PREVIEW

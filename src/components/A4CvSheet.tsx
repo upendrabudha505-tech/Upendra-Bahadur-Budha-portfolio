@@ -181,41 +181,17 @@ export const A4CvSheet: React.FC<A4CvSheetProps> = ({
             )}
           </div>
 
-          {/* Interactive Upload / Change / Shape Controls below top-right frame (hidden when printing) */}
-          {interactivePhotoControls && onUpdatePhoto && (
+          {/* Interactive Shape Control below top-right frame (hidden when printing) */}
+          {interactivePhotoControls && onTogglePhotoShape && (
             <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5 print:hidden">
               <button
                 type="button"
-                onClick={() => photoInputRef.current?.click()}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors cursor-pointer"
+                onClick={onTogglePhotoShape}
+                className="px-2 py-1 text-[10px] font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer"
+                title="Switch between Rounded-Square and Circular frame"
               >
-                <Upload className="w-3 h-3" />
-                <span>
-                  {cv.profilePhotoDataUrl ? 'Change Photo' : 'Upload Profile Picture'}
-                </span>
+                {cv.photoShape === 'circle' ? 'Rounded Frame' : 'Circle Frame'}
               </button>
-
-              {onTogglePhotoShape && (
-                <button
-                  type="button"
-                  onClick={onTogglePhotoShape}
-                  className="px-2 py-1 text-[10px] font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer"
-                  title="Switch between Rounded-Square and Circular frame"
-                >
-                  {cv.photoShape === 'circle' ? 'Rounded Frame' : 'Circle Frame'}
-                </button>
-              )}
-
-              {cv.profilePhotoDataUrl && (
-                <button
-                  type="button"
-                  onClick={() => onUpdatePhoto('')}
-                  className="p-1 text-rose-600 hover:bg-rose-50 rounded-md cursor-pointer"
-                  title="Remove profile photo"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
           )}
         </div>
